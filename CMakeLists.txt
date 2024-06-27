@@ -1,3 +1,5 @@
+#Modified by github user @Hlado 06/27/2024
+
 # cmake -DCMAKE_BUILD_TYPE=Debug ..
 # cmake -DCMAKE_BUILD_TYPE=Release ..
 if(MSVC)
@@ -78,7 +80,6 @@ target_include_directories(ap4 PUBLIC
 
 # Use the statically linked C runtime library
 if(MSVC)
-  set_property(TARGET ap4 PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   target_compile_definitions(ap4 PRIVATE -D_LIB)
 endif()
 
