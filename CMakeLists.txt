@@ -19,6 +19,8 @@ get_bento4_version()
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "")
 project(bento4 VERSION "${BENTO4_VERSION}")
 
+set(CMAKE_CXX_STANDARD 20)
+
 # Variables
 set(SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Source/C++)
 set(SOURCE_CODECS ${SOURCE_ROOT}/Codecs)
