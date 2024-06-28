@@ -1,0 +1,2 @@
+add_executable(Bento4TestBasic Basic/BasicTest.cpp)
+target_link_libraries(Bento4TestBasic PRIVATE ap4)

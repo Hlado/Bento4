@@ -85,6 +85,10 @@ if(MSVC)
   target_compile_definitions(ap4 PRIVATE -D_LIB)
 endif()
 
+if(BUILD_TESTING)
+  add_subdirectory(Source/C++/Test)
+endif()
+
 # Apps
 option(BUILD_APPS "Build example applications" ON)
 if(BUILD_APPS)

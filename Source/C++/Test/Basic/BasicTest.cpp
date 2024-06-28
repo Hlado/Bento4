@@ -26,6 +26,8 @@
 |
  ****************************************************************/
  
+//Modified by github user @Hlado 06/28/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -33,6 +35,8 @@
 #include <stdlib.h>
 
 #include "Ap4.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   constants
@@ -114,13 +118,12 @@ AtomCloneTest(AP4_Atom* atom, unsigned int depth)
             fprintf(stderr, "ERROR: clone.GetSize() [%lld] != atom->GetSize() [%lld]\n", clone->GetSize(), atom->GetSize());
             return false;
         }
-        AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream();
-        clone->Write(*mbs);
-        if (mbs->GetDataSize() != clone->GetSize()) {
-            fprintf(stderr, "ERROR: serialized size [%d] != atom size [%lld]\n", mbs->GetDataSize(), clone->GetSize());
+        AP4_MemoryByteStream mbs;
+        clone->Write(mbs);
+        if (mbs.GetDataSize() != clone->GetSize()) {
+            fprintf(stderr, "ERROR: serialized size [%d] != atom size [%lld]\n", mbs.GetDataSize(), clone->GetSize());
             return false;
         }
-        mbs->Release();
     }
     
     return true;
@@ -130,14 +133,14 @@ AtomCloneTest(AP4_Atom* atom, unsigned int depth)
 |   AtomCloneTest
 +---------------------------------------------------------------------*/
 static bool
-AtomCloneTest(AP4_ByteStream* input)
+AtomCloneTest(std::shared_ptr<AP4_ByteStream> input)
 {
     AP4_DefaultAtomFactory factory;
     
     AP4_Result result;
     do {
         AP4_Atom* atom = NULL;
-        result = factory.CreateAtomFromStream(*input, atom);
+        result = factory.CreateAtomFromStream(input, atom);
         if (AP4_SUCCEEDED(result)) {
             AtomCloneTest(atom, 0);
         }
@@ -159,10 +162,10 @@ main(int argc, char** argv)
     const char* output_filename = argv[2];
     
     // open the input
-    AP4_ByteStream* input = NULL;
+    std::shared_ptr<AP4_ByteStream> input;
     try {
-        input = new AP4_FileByteStream(input_filename,
-                               AP4_FileByteStream::STREAM_MODE_READ);
+        input = std::make_shared<AP4_FileByteStream>(input_filename,
+                                                     AP4_FileByteStream::STREAM_MODE_READ);
     } catch (AP4_Exception) {
         fprintf(stderr, "ERROR: cannot open input file (%s)\n", input_filename);
         return 1;
@@ -175,12 +178,12 @@ main(int argc, char** argv)
     input->Seek(0);
     
     // open the output
-    AP4_ByteStream* output = new AP4_FileByteStream(
+    auto output = std::make_shared<AP4_FileByteStream>(
         output_filename,
         AP4_FileByteStream::STREAM_MODE_WRITE);
     
     // parse the file
-    AP4_File* mp4_file = new AP4_File(*input);
+    AP4_File* mp4_file = new AP4_File(input);
     
     result = SampleDescriptionCloneTest(mp4_file);
     if (!result) {
@@ -192,8 +195,6 @@ main(int argc, char** argv)
     
     // cleanup
     delete mp4_file;
-    input->Release();
-    output->Release();
 
     return 0;                                            
 }
