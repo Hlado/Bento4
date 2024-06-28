@@ -76,6 +76,8 @@ public:
     AP4_FileByteStream(const char* name, Mode mode);
 #endif
 
+    virtual ~AP4_FileByteStream() {}
+
     // AP4_ByteStream methods
     AP4_Result ReadPartial(void*    buffer,
                            AP4_Size  bytesToRead,
@@ -93,9 +95,6 @@ public:
     AP4_Result Flush()                      { return m_Delegate->Flush();        }
 
 protected:
-    // methods
-    virtual ~AP4_FileByteStream() {}
-
     // members
     std::shared_ptr<AP4_ByteStream> m_Delegate;
 };
