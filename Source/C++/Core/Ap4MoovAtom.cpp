@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -73,9 +75,9 @@ AP4_MoovAtom::AP4_MoovAtom() :
 /*----------------------------------------------------------------------
 |   AP4_MoovAtom::AP4_MoovAtom
 +---------------------------------------------------------------------*/
-AP4_MoovAtom::AP4_MoovAtom(AP4_UI32         size,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_MoovAtom::AP4_MoovAtom(AP4_UI32                        size,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_MOOV, size, false, stream, atom_factory),
     m_TimeScale(0)
 {

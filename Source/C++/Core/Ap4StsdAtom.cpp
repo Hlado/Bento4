@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -45,16 +47,16 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_StsdAtom)
 |   AP4_StsdAtom::Create
 +---------------------------------------------------------------------*/
 AP4_StsdAtom*
-AP4_StsdAtom::Create(AP4_Size         size, 
-                     AP4_ByteStream&  stream, 
-                     AP4_AtomFactory& atom_factory)
+AP4_StsdAtom::Create(AP4_Size                        size, 
+                     std::shared_ptr<AP4_ByteStream> stream,
+                     AP4_AtomFactory&                atom_factory)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version > 1) return NULL;
-    return new AP4_StsdAtom(size, version, flags, stream, atom_factory);
+    return new AP4_StsdAtom(size, version, flags, std::move(stream), atom_factory);
 }
 
 /*----------------------------------------------------------------------
@@ -80,17 +82,17 @@ AP4_StsdAtom::AP4_StsdAtom(AP4_SampleTable* sample_table) :
 /*----------------------------------------------------------------------
 |   AP4_StsdAtom::AP4_StsdAtom
 +---------------------------------------------------------------------*/
-AP4_StsdAtom::AP4_StsdAtom(AP4_UI32         size,
-                           AP4_UI08         version,
-                           AP4_UI32         flags,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_StsdAtom::AP4_StsdAtom(AP4_UI32                        size,
+                           AP4_UI08                        version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_STSD, size, false, version, flags)
 {
     if (size < AP4_FULL_ATOM_HEADER_SIZE + 4) return;
     // read the number of entries
     AP4_UI32 entry_count;
-    stream.ReadUI32(entry_count);
+    stream->ReadUI32(entry_count);
 
     // save and switch the factory's context
     atom_factory.PushContext(m_Type);

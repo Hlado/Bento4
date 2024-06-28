@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -122,13 +124,13 @@ AP4_MovieFragment::GetTrafAtom(AP4_UI32 track_id, AP4_ContainerAtom*& traf)
 |   AP4_MovieFragment::CreateSampleTable
 +---------------------------------------------------------------------*/
 AP4_Result         
-AP4_MovieFragment::CreateSampleTable(AP4_MoovAtom*             moov,
-                                     AP4_UI32                  track_id, 
-                                     AP4_ByteStream*           sample_stream,
-                                     AP4_Position              moof_offset,
-                                     AP4_Position              mdat_payload_offset,
-                                     AP4_UI64                  dts_origin,
-                                     AP4_FragmentSampleTable*& sample_table)
+AP4_MovieFragment::CreateSampleTable(AP4_MoovAtom*                   moov,
+                                     AP4_UI32                        track_id, 
+                                     std::shared_ptr<AP4_ByteStream> sample_stream,
+                                     AP4_Position                    moof_offset,
+                                     AP4_Position                    mdat_payload_offset,
+                                     AP4_UI64                        dts_origin,
+                                     AP4_FragmentSampleTable*&       sample_table)
 {
     // default value
     sample_table = NULL;
@@ -169,13 +171,13 @@ AP4_MovieFragment::CreateSampleTable(AP4_MoovAtom*             moov,
 |   AP4_MovieFragment::CreateSampleTable
 +---------------------------------------------------------------------*/
 AP4_Result         
-AP4_MovieFragment::CreateSampleTable(AP4_Movie*                movie,
-                                     AP4_UI32                  track_id, 
-                                     AP4_ByteStream*           sample_stream,
-                                     AP4_Position              moof_offset,
-                                     AP4_Position              mdat_payload_offset,
-                                     AP4_UI64                  dts_origin,
-                                     AP4_FragmentSampleTable*& sample_table)
+AP4_MovieFragment::CreateSampleTable(AP4_Movie*                      movie,
+                                     AP4_UI32                        track_id,
+                                     std::shared_ptr<AP4_ByteStream> sample_stream,
+                                     AP4_Position                    moof_offset,
+                                     AP4_Position                    mdat_payload_offset,
+                                     AP4_UI64                        dts_origin,
+                                     AP4_FragmentSampleTable*&       sample_table)
 {
     AP4_MoovAtom* moov = movie?movie->GetMoovAtom():NULL;
     return CreateSampleTable(moov, track_id, sample_stream, moof_offset, mdat_payload_offset, dts_origin, sample_table);

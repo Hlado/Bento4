@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -408,24 +410,15 @@ AP4_ByteStream::CopyTo(AP4_ByteStream& stream, AP4_LargeSize size)
 /*----------------------------------------------------------------------
 |   AP4_SubStream::AP4_SubStream
 +---------------------------------------------------------------------*/
-AP4_SubStream::AP4_SubStream(AP4_ByteStream& container, 
+AP4_SubStream::AP4_SubStream(std::shared_ptr<AP4_ByteStream> container, 
                              AP4_Position    offset, 
                              AP4_LargeSize   size) :
-    m_Container(container),
+    m_Container(std::move(container)),
     m_Offset(offset),
     m_Size(size),
-    m_Position(0),
-    m_ReferenceCount(1)
+    m_Position(0)
 {
-    m_Container.AddReference();
-}
 
-/*----------------------------------------------------------------------
-|   AP4_SubStream::~AP4_SubStream
-+---------------------------------------------------------------------*/
-AP4_SubStream::~AP4_SubStream()
-{
-    m_Container.Release();
 }
 
 /*----------------------------------------------------------------------
@@ -456,13 +449,13 @@ AP4_SubStream::ReadPartial(void*     buffer,
 
     // seek inside container
     AP4_Result result;
-    result = m_Container.Seek(m_Offset+m_Position);
+    result = m_Container->Seek(m_Offset+m_Position);
     if (AP4_FAILED(result)) {
         return result;
     }
 
     // read from the container
-    result = m_Container.ReadPartial(buffer, bytes_to_read, bytes_read);
+    result = m_Container->ReadPartial(buffer, bytes_to_read, bytes_read);
     if (AP4_SUCCEEDED(result)) {
         m_Position += bytes_read;
     }
@@ -497,11 +490,11 @@ AP4_SubStream::WritePartial(const void* buffer,
 
     // seek inside container
     AP4_Result result;
-    result = m_Container.Seek(m_Offset+m_Position);
+    result = m_Container->Seek(m_Offset+m_Position);
     if (AP4_FAILED(result)) return result;
 
     // write to container
-    result = m_Container.WritePartial(buffer, bytes_to_write, bytes_written);
+    result = m_Container->WritePartial(buffer, bytes_to_write, bytes_written);
     if (AP4_SUCCEEDED(result)) {
         m_Position += bytes_written;
     }
@@ -521,42 +514,13 @@ AP4_SubStream::Seek(AP4_Position position)
 }
 
 /*----------------------------------------------------------------------
-|   AP4_SubStream::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_SubStream::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_SubStream::Release
-+---------------------------------------------------------------------*/
-void
-AP4_SubStream::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
-    }
-}
-
-/*----------------------------------------------------------------------
 |   AP4_DupStream::AP4_DupStream
 +---------------------------------------------------------------------*/
-AP4_DupStream::AP4_DupStream(AP4_ByteStream& original_stream) :
-    m_OriginalStream(original_stream),
-    m_Position(0),
-    m_ReferenceCount(1)
+AP4_DupStream::AP4_DupStream(std::shared_ptr<AP4_ByteStream> original_stream) :
+    m_OriginalStream(std::move(original_stream)),
+    m_Position(0)
 {
-    m_OriginalStream.AddReference();
-}
 
-/*----------------------------------------------------------------------
-|   AP4_DupStream::~AP4_DupStream
-+---------------------------------------------------------------------*/
-AP4_DupStream::~AP4_DupStream()
-{
-    m_OriginalStream.Release();
 }
 
 /*----------------------------------------------------------------------
@@ -576,10 +540,10 @@ AP4_DupStream::ReadPartial(void*     buffer,
     }
 
     // seek to the right position in the original stream
-    m_OriginalStream.Seek(m_Position);
+    m_OriginalStream->Seek(m_Position);
     
     // read
-    AP4_Result result = m_OriginalStream.ReadPartial(buffer, bytes_to_read, bytes_read);
+    AP4_Result result = m_OriginalStream->ReadPartial(buffer, bytes_to_read, bytes_read);
     
     // adjust our position
     if (AP4_SUCCEEDED(result)) {
@@ -606,10 +570,10 @@ AP4_DupStream::WritePartial(const void* buffer,
     }
 
     // seek to the right position in the original stream
-    m_OriginalStream.Seek(m_Position);
+    m_OriginalStream->Seek(m_Position);
     
     // read
-    AP4_Result result = m_OriginalStream.WritePartial(buffer, bytes_to_write, bytes_written);
+    AP4_Result result = m_OriginalStream->WritePartial(buffer, bytes_to_write, bytes_written);
     
     // adjust our position
     if (AP4_SUCCEEDED(result)) {
@@ -626,7 +590,7 @@ AP4_Result
 AP4_DupStream::Seek(AP4_Position position)
 {
     if (position == m_Position) return AP4_SUCCESS;
-    AP4_Result result = m_OriginalStream.Seek(position);
+    AP4_Result result = m_OriginalStream->Seek(position);
     if (AP4_SUCCEEDED(result)) {
         m_Position = position;
     }
@@ -634,32 +598,11 @@ AP4_DupStream::Seek(AP4_Position position)
 }
 
 /*----------------------------------------------------------------------
-|   AP4_DupStream::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_DupStream::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_DupStream::Release
-+---------------------------------------------------------------------*/
-void
-AP4_DupStream::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
-    }
-}
-
-/*----------------------------------------------------------------------
 |   AP4_MemoryByteStream::AP4_MemoryByteStream
 +---------------------------------------------------------------------*/
 AP4_MemoryByteStream::AP4_MemoryByteStream(AP4_Size size) :
     m_BufferIsLocal(true),
-    m_Position(0),
-    m_ReferenceCount(1)
+    m_Position(0)
 {
     m_Buffer = new AP4_DataBuffer(size);
     AP4_SetMemory(m_Buffer->UseData(), 0, size);
@@ -671,8 +614,7 @@ AP4_MemoryByteStream::AP4_MemoryByteStream(AP4_Size size) :
 +---------------------------------------------------------------------*/
 AP4_MemoryByteStream::AP4_MemoryByteStream(const AP4_UI08* buffer, AP4_Size size) :
     m_BufferIsLocal(true),
-    m_Position(0),
-    m_ReferenceCount(1)
+    m_Position(0)
 {
     m_Buffer = new AP4_DataBuffer(buffer, size);
 }
@@ -683,8 +625,7 @@ AP4_MemoryByteStream::AP4_MemoryByteStream(const AP4_UI08* buffer, AP4_Size size
 AP4_MemoryByteStream::AP4_MemoryByteStream(AP4_DataBuffer& data_buffer) :
     m_Buffer(&data_buffer),
     m_BufferIsLocal(false),
-    m_Position(0),
-    m_ReferenceCount(1)
+    m_Position(0)
 {
 }
 
@@ -694,8 +635,7 @@ AP4_MemoryByteStream::AP4_MemoryByteStream(AP4_DataBuffer& data_buffer) :
 AP4_MemoryByteStream::AP4_MemoryByteStream(AP4_DataBuffer* data_buffer) :
     m_Buffer(data_buffer),
     m_BufferIsLocal(true),
-    m_Position(0),
-    m_ReferenceCount(1)
+    m_Position(0)
 {
 }
 
@@ -802,39 +742,18 @@ AP4_MemoryByteStream::Seek(AP4_Position position)
 }
 
 /*----------------------------------------------------------------------
-|   AP4_MemoryByteStream::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_MemoryByteStream::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_MemoryByteStream::Release
-+---------------------------------------------------------------------*/
-void
-AP4_MemoryByteStream::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
-    }
-}
-
-/*----------------------------------------------------------------------
 |   AP4_BufferedInputStream::AP4_BufferedInputStream
 +---------------------------------------------------------------------*/
-AP4_BufferedInputStream::AP4_BufferedInputStream(AP4_ByteStream& source, 
-                                                 AP4_Size        buffer_size,
-                                                 AP4_Size        seek_as_read_threshold) :
+AP4_BufferedInputStream::AP4_BufferedInputStream(std::shared_ptr<AP4_ByteStream> source,
+                                                 AP4_Size                        buffer_size,
+                                                 AP4_Size                        seek_as_read_threshold) :
     m_Buffer(buffer_size),
     m_BufferPosition(0),
-    m_Source(source),
+    m_Source(std::move(source)),
     m_SourcePosition(0),
-    m_SeekAsReadThreshold(seek_as_read_threshold),
-    m_ReferenceCount(1)
+    m_SeekAsReadThreshold(seek_as_read_threshold)
 {
-    source.AddReference();
+
 }
 
 /*----------------------------------------------------------------------
@@ -845,9 +764,9 @@ AP4_BufferedInputStream::Refill()
 {
     m_BufferPosition = 0;
     AP4_Size bytes_read = 0;
-    AP4_Result result = m_Source.ReadPartial(m_Buffer.UseData(), 
-                                             m_Buffer.GetBufferSize(), 
-                                             bytes_read);
+    AP4_Result result = m_Source->ReadPartial(m_Buffer.UseData(), 
+                                              m_Buffer.GetBufferSize(), 
+                                              bytes_read);
     if (AP4_FAILED(result)) {
         m_Buffer.SetDataSize(0);
         return result;
@@ -933,7 +852,7 @@ AP4_BufferedInputStream::Seek(AP4_Position position)
             while (to_skip) {
                 AP4_Size chunk = 4096;
                 if (chunk > to_skip) chunk = to_skip;
-                AP4_Result result = m_Source.Read(discard, chunk);
+                AP4_Result result = m_Source->Read(discard, chunk);
                 if (AP4_FAILED(result)) {
                     delete[] discard;
                     return result;
@@ -945,7 +864,7 @@ AP4_BufferedInputStream::Seek(AP4_Position position)
             return AP4_SUCCESS;
         } else {
             m_SourcePosition = position;
-            return m_Source.Seek(position);
+            return m_Source->Seek(position);
         }
     }
     
@@ -965,24 +884,4 @@ AP4_BufferedInputStream::Tell(AP4_Position& position)
     assert(m_BufferPosition <= m_Buffer.GetDataSize());
     position = m_SourcePosition-m_Buffer.GetDataSize()+m_BufferPosition;
     return AP4_SUCCESS;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_BufferedInputStream::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_BufferedInputStream::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_MemoryByteStream::Release
-+---------------------------------------------------------------------*/
-void
-AP4_BufferedInputStream::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
-    }
 }

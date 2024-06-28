@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_ODDA_ATOM_H_
 #define _AP4_ODDA_ATOM_H_
 
@@ -35,6 +37,8 @@
 #include "Ap4Types.h"
 #include "Ap4Atom.h"
 #include "Ap4String.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   AP4_OddaAtom
@@ -46,13 +50,10 @@ public:
 
     // class methods
     static AP4_OddaAtom* Create(AP4_UI64        size, 
-                                AP4_ByteStream& stream);
+                                std::shared_ptr<AP4_ByteStream> stream);
 
     // constructor
-    AP4_OddaAtom(AP4_ByteStream& encrypted_payload);
-     
-    // destructor
-    ~AP4_OddaAtom();
+    AP4_OddaAtom(std::shared_ptr<AP4_ByteStream> encrypted_payload);
 
     // methods
     virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
@@ -64,24 +65,21 @@ public:
     /**
      * Sets the encrypted payload stream (and releases any existing stream references)
      */
-    AP4_Result SetEncryptedPayload(AP4_ByteStream& stream);
-    AP4_Result SetEncryptedPayload(AP4_ByteStream& stream, AP4_LargeSize length);
+    AP4_Result SetEncryptedPayload(std::shared_ptr<AP4_ByteStream> stream);
+    AP4_Result SetEncryptedPayload(std::shared_ptr<AP4_ByteStream> stream, AP4_LargeSize length);
 
-    /**
-     * Returns a reference to the encrypted payload stream (does not increment the reference counter)
-     */
-    AP4_ByteStream& GetEncryptedPayload() { return *m_EncryptedPayload; }
+    std::shared_ptr<AP4_ByteStream> GetEncryptedPayload() { return m_EncryptedPayload; }
 
 private:
     // methods
-    AP4_OddaAtom(AP4_UI64         size, 
-                 AP4_UI08         version,
-                 AP4_UI32         flags,
-                 AP4_ByteStream&  stream);
+    AP4_OddaAtom(AP4_UI64                        size, 
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream);
 
     // members
-    AP4_UI64        m_EncryptedDataLength;
-    AP4_ByteStream* m_EncryptedPayload;
+    AP4_UI64                        m_EncryptedDataLength;
+    std::shared_ptr<AP4_ByteStream> m_EncryptedPayload;
 };
 
 #endif // _AP4_ODDA_ATOM_H_

@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -201,9 +203,9 @@ AP4_Track::AP4_Track(AP4_SampleTable* sample_table,
 /*----------------------------------------------------------------------
 |   AP4_Track::AP4_Track
 +---------------------------------------------------------------------*/
-AP4_Track::AP4_Track(AP4_TrakAtom&   atom, 
-                     AP4_ByteStream& sample_stream, 
-                     AP4_UI32        movie_time_scale) :
+AP4_Track::AP4_Track(AP4_TrakAtom&                   atom, 
+                     std::shared_ptr<AP4_ByteStream> sample_stream, 
+                     AP4_UI32                        movie_time_scale) :
     m_TrakAtom(&atom),
     m_TrakAtomIsOwned(false),
     m_Type(TYPE_UNKNOWN),
@@ -275,9 +277,8 @@ AP4_Track::Clone(AP4_Result* result)
     AP4_Sample  sample;
     AP4_Ordinal index = 0;
     while (AP4_SUCCEEDED(GetSample(index, sample))) {
-        AP4_ByteStream* data_stream;
-        data_stream = sample.GetDataStream();
-        sample_table->AddSample(*data_stream,
+        auto data_stream = sample.GetDataStream();
+        sample_table->AddSample(data_stream,
                                 sample.GetOffset(),
                                 sample.GetSize(),
                                 sample.GetDuration(),
@@ -285,7 +286,6 @@ AP4_Track::Clone(AP4_Result* result)
                                 sample.GetDts(),
                                 sample.GetCtsDelta(),
                                 sample.IsSync());
-        AP4_RELEASE(data_stream); // release our ref, the table has kept its own ref.
         index++;
     }    
     

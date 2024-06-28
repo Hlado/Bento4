@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -44,18 +46,18 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_ContainerAtom)
 |   AP4_ContainerAtom::AP4_ContainerAtom
 +---------------------------------------------------------------------*/
 AP4_ContainerAtom*
-AP4_ContainerAtom::Create(Type             type, 
-                          AP4_UI64         size,
-                          bool             is_full,
-                          bool             force_64,
-                          AP4_ByteStream&  stream,
-                          AP4_AtomFactory& atom_factory)
+AP4_ContainerAtom::Create(Type                            type,
+                          AP4_UI64                        size,
+                          bool                            is_full,
+                          bool                            force_64,
+                          std::shared_ptr<AP4_ByteStream> stream,
+                          AP4_AtomFactory&                atom_factory)
 {
     if (is_full) {
         AP4_UI08 version;
         AP4_UI32 flags;
         if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-        if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+        if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
         
         // special case for 'meta' atoms, because Apple sometimes creates them as
         // regular (non-full) atoms. This is bogus, but we can try to detect it
@@ -65,20 +67,20 @@ AP4_ContainerAtom::Create(Type             type,
                 // version+flags looks like a size. read the next 4 bytes just
                 // to be sure it is a hdlr atom
                 AP4_UI32 peek;
-                if (AP4_FAILED(stream.ReadUI32(peek))) return NULL;
+                if (AP4_FAILED(stream->ReadUI32(peek))) return NULL;
                 if (peek == AP4_ATOM_TYPE_HDLR) {
                     // rewind the stream by 8 bytes
                     AP4_Position position;
-                    stream.Tell(position);
-                    stream.Seek(position-8);
+                    stream->Tell(position);
+                    stream->Seek(position-8);
                     
                     // create a non-full container
                     return new AP4_ContainerAtom(type, size, force_64, stream, atom_factory);
                 } else {
                     // rewind the stream by 4 bytes
                     AP4_Position position;
-                    stream.Tell(position);
-                    stream.Seek(position-4);
+                    stream->Tell(position);
+                    stream->Seek(position-4);
                 }
             }
         }
@@ -129,11 +131,11 @@ AP4_ContainerAtom::AP4_ContainerAtom(Type     type,
 /*----------------------------------------------------------------------
 |   AP4_ContainerAtom::AP4_ContainerAtom
 +---------------------------------------------------------------------*/
-AP4_ContainerAtom::AP4_ContainerAtom(Type             type, 
-                                     AP4_UI64         size,
-                                     bool             force_64,
-                                     AP4_ByteStream&  stream,
-                                     AP4_AtomFactory& atom_factory) :
+AP4_ContainerAtom::AP4_ContainerAtom(Type                            type, 
+                                     AP4_UI64                        size,
+                                     bool                            force_64,
+                                     std::shared_ptr<AP4_ByteStream> stream,
+                                     AP4_AtomFactory&                atom_factory) :
     AP4_Atom(type, size, force_64)
 {
     if (size < GetHeaderSize()) return;
@@ -143,13 +145,13 @@ AP4_ContainerAtom::AP4_ContainerAtom(Type             type,
 /*----------------------------------------------------------------------
 |   AP4_ContainerAtom::AP4_ContainerAtom
 +---------------------------------------------------------------------*/
-AP4_ContainerAtom::AP4_ContainerAtom(Type             type, 
-                                     AP4_UI64         size,
-                                     bool             force_64,
-                                     AP4_UI08         version,
-                                     AP4_UI32         flags,
-                                     AP4_ByteStream&  stream,
-                                     AP4_AtomFactory& atom_factory) :
+AP4_ContainerAtom::AP4_ContainerAtom(Type                            type,
+                                     AP4_UI64                        size,
+                                     bool                            force_64,
+                                     AP4_UI08                        version,
+                                     AP4_UI32                        flags,
+                                     std::shared_ptr<AP4_ByteStream> stream,
+                                     AP4_AtomFactory&                atom_factory) :
     AP4_Atom(type, size, force_64, version, flags)
 {
     if (size < GetHeaderSize()) return;
@@ -183,9 +185,9 @@ AP4_ContainerAtom::Clone()
 |   AP4_ContainerAtom::ReadChildren
 +---------------------------------------------------------------------*/
 void
-AP4_ContainerAtom::ReadChildren(AP4_AtomFactory& atom_factory,
-                                AP4_ByteStream&  stream, 
-                                AP4_UI64         size)
+AP4_ContainerAtom::ReadChildren(AP4_AtomFactory&                 atom_factory,
+                                std::shared_ptr<AP4_ByteStream>  stream, 
+                                AP4_UI64                         size)
 {
     AP4_Atom*     atom;
     AP4_LargeSize bytes_available = size;

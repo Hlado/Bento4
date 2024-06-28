@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_TRAK_H_
 #define _AP4_TRAK_H_
 
@@ -34,6 +36,8 @@
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
 #include "Ap4Array.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   forward declarations
@@ -94,9 +98,9 @@ class AP4_Track {
               AP4_UI32         media_time_scale,
               AP4_UI64         media_duration,   // in the media timescale
               const AP4_Track* track_prototype); // prototype for the type and other track fields
-    AP4_Track(AP4_TrakAtom&   atom,
-              AP4_ByteStream& sample_stream,
-              AP4_UI32        movie_time_scale);
+    AP4_Track(AP4_TrakAtom&                   atom,
+              std::shared_ptr<AP4_ByteStream> sample_stream,
+              AP4_UI32                        movie_time_scale);
     virtual ~AP4_Track();
 
     /**

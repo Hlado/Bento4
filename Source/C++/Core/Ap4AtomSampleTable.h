@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_ATOM_SAMPLE_TABLE_H_
 #define _AP4_ATOM_SAMPLE_TABLE_H_
 
@@ -34,6 +36,8 @@
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
 #include "Ap4SampleTable.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   forward declarations
@@ -59,8 +63,8 @@ class AP4_AtomSampleTable : public AP4_SampleTable
     AP4_IMPLEMENT_DYNAMIC_CAST_D(AP4_AtomSampleTable, AP4_SampleTable)
 
     // methods
-             AP4_AtomSampleTable(AP4_ContainerAtom* stbl_atom, 
-                                 AP4_ByteStream&    sample_stream);
+             AP4_AtomSampleTable(AP4_ContainerAtom*                 stbl_atom, 
+                                 std::shared_ptr<AP4_ByteStream>    sample_stream);
     virtual ~AP4_AtomSampleTable();
 
     // AP4_SampleTable methods
@@ -85,7 +89,7 @@ class AP4_AtomSampleTable : public AP4_SampleTable
 
 private:
     // members
-    AP4_ByteStream& m_SampleStream;
+    std::shared_ptr<AP4_ByteStream> m_SampleStream;
     AP4_StscAtom*   m_StscAtom;
     AP4_StcoAtom*   m_StcoAtom;
     AP4_StszAtom*   m_StszAtom;

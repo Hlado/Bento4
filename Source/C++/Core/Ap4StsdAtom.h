@@ -52,9 +52,9 @@ public:
     AP4_IMPLEMENT_DYNAMIC_CAST_D(AP4_StsdAtom, AP4_ContainerAtom)
 
     // class methods
-    static AP4_StsdAtom* Create(AP4_Size         size,
-                                AP4_ByteStream&  stream,
-                                AP4_AtomFactory& atom_factory);
+    static AP4_StsdAtom* Create(AP4_Size                        size,
+                                std::shared_ptr<AP4_ByteStream> stream,
+                                AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_StsdAtom(AP4_SampleTable* sample_table);
@@ -70,11 +70,11 @@ public:
 
 private:
     // methods
-    AP4_StsdAtom(AP4_UI32         size,
-                 AP4_UI08         version,
-                 AP4_UI32         flags,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+    AP4_StsdAtom(AP4_UI32                        size,
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream,
+                 AP4_AtomFactory&                atom_factory);
 
     // members
     AP4_Array<AP4_SampleDescription*> m_SampleDescriptions;

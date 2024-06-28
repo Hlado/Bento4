@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_SEGMENT_BUILDER_H_
 #define _AP4_SEGMENT_BUILDER_H_
 
@@ -41,6 +43,8 @@
 #include "Ap4String.h"
 #include "Ap4Track.h"
 #include "Ap4SampleDescription.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -223,19 +227,19 @@ class AP4_StreamFeeder
 {
 public:
     // constructor and destructor
-    AP4_StreamFeeder(AP4_ByteStream* source, AP4_FeedSegmentBuilder& builder);
+    AP4_StreamFeeder(std::shared_ptr<AP4_ByteStream> source, AP4_FeedSegmentBuilder& builder);
     ~AP4_StreamFeeder();
     
     // methods
     AP4_Result Feed(); // Read some data from the stream and feed it to the builder
     
 private:
-    AP4_ByteStream*         m_Source;
-    AP4_FeedSegmentBuilder& m_Builder;
-    AP4_UI08*               m_FeedBuffer;
-    AP4_Size                m_FeedBufferSize;
-    AP4_Size                m_FeedBytesPending;  // number of bytes not yet parsed
-    AP4_Size                m_FeedBytesParsed;   // number of bytes already parsed
+    std::shared_ptr<AP4_ByteStream> m_Source;
+    AP4_FeedSegmentBuilder&         m_Builder;
+    AP4_UI08*                       m_FeedBuffer;
+    AP4_Size                        m_FeedBufferSize;
+    AP4_Size                        m_FeedBytesPending;  // number of bytes not yet parsed
+    AP4_Size                        m_FeedBytesParsed;   // number of bytes already parsed
 };
 
 #endif // _AP4_SEGMENT_BUILDER_H_

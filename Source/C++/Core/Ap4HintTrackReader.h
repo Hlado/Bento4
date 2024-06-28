@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_HINT_TRACK_READER_H_
 #define _AP4_HINT_TRACK_READER_H_
 
@@ -34,6 +36,8 @@
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
 #include "Ap4Sample.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class declarations
@@ -78,12 +82,12 @@ private:
     
     // methods
     AP4_Result GetRtpSample(AP4_Ordinal index);
-    AP4_Result BuildRtpPacket(AP4_RtpPacket*  packet, 
-                              AP4_DataBuffer& packet_data);
-    AP4_Result WriteImmediateRtpData(AP4_ImmediateRtpConstructor* constructor,
-                                     AP4_ByteStream*              data_stream);
-    AP4_Result WriteSampleRtpData(AP4_SampleRtpConstructor* constructor,
-                                  AP4_ByteStream*           data_stream);
+    AP4_Result BuildRtpPacket(std::shared_ptr<AP4_RtpPacket> packet,
+                              AP4_DataBuffer&                packet_data);
+    AP4_Result WriteImmediateRtpData(AP4_ImmediateRtpConstructor& constructor,
+                                     AP4_ByteStream&              data_stream);
+    AP4_Result WriteSampleRtpData(AP4_SampleRtpConstructor& constructor,
+                                  AP4_ByteStream&           data_stream);
 
     // members
     AP4_Track&          m_HintTrack;

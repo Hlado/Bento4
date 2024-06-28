@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_PROTECTION_H_
 #define _AP4_PROTECTION_H_
 
@@ -39,6 +41,8 @@
 #include "Ap4SampleDescription.h"
 #include "Ap4Processor.h"
 #include "Ap4Utils.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   classes
@@ -60,13 +64,13 @@ class AP4_EncaSampleEntry : public AP4_AudioSampleEntry
 {
 public:
     // methods
-    AP4_EncaSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
-    AP4_EncaSampleEntry(AP4_UI32         type,
-                        AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_EncaSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
+    AP4_EncaSampleEntry(AP4_UI32                        type,
+                        AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_SampleDescription* ToSampleDescription();
@@ -85,13 +89,13 @@ class AP4_EncvSampleEntry : public AP4_VisualSampleEntry
 {
 public:
     // constructors
-    AP4_EncvSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
-    AP4_EncvSampleEntry(AP4_UI32         type,
-                        AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_EncvSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
+    AP4_EncvSampleEntry(AP4_UI32                        type,
+                        AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_SampleDescription* ToSampleDescription();
@@ -110,9 +114,9 @@ class AP4_DrmsSampleEntry : public AP4_EncaSampleEntry
 {
 public:
     // methods
-    AP4_DrmsSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_DrmsSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
 };
 
 /*----------------------------------------------------------------------
@@ -122,9 +126,9 @@ class AP4_DrmiSampleEntry : public AP4_EncvSampleEntry
 {
 public:
     // methods
-    AP4_DrmiSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_DrmiSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
 };
 
 /*----------------------------------------------------------------------
@@ -429,15 +433,17 @@ private:
 class AP4_DecryptingStream : public AP4_ByteStream 
 {
 public:
-    static AP4_Result Create(AP4_BlockCipher::CipherMode mode,
-                             AP4_ByteStream&             encrypted_stream,
-                             AP4_LargeSize               cleartext_size,
-                             const AP4_UI08*             iv,
-                             AP4_Size                    iv_size,
-                             const AP4_UI08*             key,
-                             AP4_Size                    key_size,
-                             AP4_BlockCipherFactory*     block_cipher_factory,
-                             AP4_ByteStream*&            stream);
+    static AP4_Result Create(AP4_BlockCipher::CipherMode      mode,
+                             std::shared_ptr<AP4_ByteStream>  encrypted_stream,
+                             AP4_LargeSize                    cleartext_size,
+                             const AP4_UI08*                  iv,
+                             AP4_Size                         iv_size,
+                             const AP4_UI08*                  key,
+                             AP4_Size                         key_size,
+                             AP4_BlockCipherFactory*          block_cipher_factory,
+                             std::shared_ptr<AP4_ByteStream>& stream);
+
+    virtual ~AP4_DecryptingStream();
 
     // AP4_ByteStream methods
     virtual AP4_Result ReadPartial(void*     buffer, 
@@ -450,41 +456,34 @@ public:
     virtual AP4_Result Tell(AP4_Position& position);
     virtual AP4_Result GetSize(AP4_LargeSize& size);
 
-    // AP4_Referenceable methods
-    virtual void AddReference();
-    virtual void Release();
-
 private:
     // private constructor, use the factory instead
-    AP4_DecryptingStream(AP4_LargeSize               cleartext_size,
-                         AP4_ByteStream*             encrypted_stream,
-                         AP4_LargeSize               encrypted_size,
-                         AP4_StreamCipher*           stream_cipher) :
+    AP4_DecryptingStream(AP4_LargeSize                   cleartext_size,
+                         std::shared_ptr<AP4_ByteStream> encrypted_stream,
+                         AP4_LargeSize                   encrypted_size,
+                         AP4_StreamCipher*               stream_cipher) :
         m_CleartextSize(cleartext_size),
         m_CleartextPosition(0),
-        m_EncryptedStream(encrypted_stream),
+        m_EncryptedStream(std::move(encrypted_stream)),
         m_EncryptedSize(encrypted_size),
         m_EncryptedPosition(0),
         m_StreamCipher(stream_cipher),
         m_BufferFullness(0),
-        m_BufferOffset(0),
-        m_ReferenceCount(1)
+        m_BufferOffset(0)
         { 
             AP4_SetMemory(m_Buffer, 0, sizeof(m_Buffer)); 
         } 
-    ~AP4_DecryptingStream();
 
     // members
-    AP4_LargeSize               m_CleartextSize;
-    AP4_Position                m_CleartextPosition;
-    AP4_ByteStream*             m_EncryptedStream;
-    AP4_LargeSize               m_EncryptedSize;
-    AP4_Position                m_EncryptedPosition;
-    AP4_StreamCipher*           m_StreamCipher;
-    AP4_UI08                    m_Buffer[1024];
-    AP4_Size                    m_BufferFullness;
-    AP4_Size                    m_BufferOffset;
-    AP4_Cardinal                m_ReferenceCount;
+    AP4_LargeSize                   m_CleartextSize;
+    AP4_Position                    m_CleartextPosition;
+    std::shared_ptr<AP4_ByteStream> m_EncryptedStream;
+    AP4_LargeSize                   m_EncryptedSize;
+    AP4_Position                    m_EncryptedPosition;
+    AP4_StreamCipher*               m_StreamCipher;
+    AP4_UI08                        m_Buffer[1024];
+    AP4_Size                        m_BufferFullness;
+    AP4_Size                        m_BufferOffset;
 };
 
 /*----------------------------------------------------------------------
@@ -493,15 +492,17 @@ private:
 class AP4_EncryptingStream : public AP4_ByteStream 
 {
 public:
-    static AP4_Result Create(AP4_BlockCipher::CipherMode mode,
-                             AP4_ByteStream&             cleartext_stream,
-                             const AP4_UI08*             iv,
-                             AP4_Size                    iv_size,
-                             const AP4_UI08*             key,
-                             AP4_Size                    key_size,
-                             bool                        prepend_iv,
-                             AP4_BlockCipherFactory*     block_cipher_factory,
-                             AP4_ByteStream*&            stream);
+    static AP4_Result Create(AP4_BlockCipher::CipherMode      mode,
+                             std::shared_ptr<AP4_ByteStream>  cleartext_stream,
+                             const AP4_UI08*                  iv,
+                             AP4_Size                         iv_size,
+                             const AP4_UI08*                  key,
+                             AP4_Size                         key_size,
+                             bool                             prepend_iv,
+                             AP4_BlockCipherFactory*          block_cipher_factory,
+                             std::shared_ptr<AP4_ByteStream>& stream);
+
+    virtual ~AP4_EncryptingStream();
 
     // AP4_ByteStream methods
     virtual AP4_Result ReadPartial(void*     buffer, 
@@ -514,41 +515,34 @@ public:
     virtual AP4_Result Tell(AP4_Position& position);
     virtual AP4_Result GetSize(AP4_LargeSize& size);
 
-    // AP4_Referenceable methods
-    virtual void AddReference();
-    virtual void Release();
-
 private:
     // private constructor, use the factory instead
-    AP4_EncryptingStream(AP4_LargeSize               cleartext_size,
-                         AP4_ByteStream*             cleartext_stream,
-                         AP4_LargeSize               encrypted_size,
-                         AP4_StreamCipher*           stream_cipher) :
+    AP4_EncryptingStream(AP4_LargeSize                   cleartext_size,
+                         std::shared_ptr<AP4_ByteStream> cleartext_stream,
+                         AP4_LargeSize                   encrypted_size,
+                         AP4_StreamCipher*               stream_cipher) :
         m_CleartextSize(cleartext_size),
         m_CleartextPosition(0),
-        m_CleartextStream(cleartext_stream),
+        m_CleartextStream(std::move(cleartext_stream)),
         m_EncryptedSize(encrypted_size),
         m_EncryptedPosition(0),
         m_StreamCipher(stream_cipher),
         m_BufferFullness(0),
-        m_BufferOffset(0),
-        m_ReferenceCount(1)
+        m_BufferOffset(0)
         {
             AP4_SetMemory(m_Buffer, 0, sizeof(m_Buffer));
         }
-    ~AP4_EncryptingStream();
 
     // members
-    AP4_LargeSize               m_CleartextSize;
-    AP4_Position                m_CleartextPosition;
-    AP4_ByteStream*             m_CleartextStream;
-    AP4_LargeSize               m_EncryptedSize;
-    AP4_Position                m_EncryptedPosition;
-    AP4_StreamCipher*           m_StreamCipher;
-    AP4_UI08                    m_Buffer[1024+16];
-    AP4_Size                    m_BufferFullness;
-    AP4_Size                    m_BufferOffset;
-    AP4_Cardinal                m_ReferenceCount;
+    AP4_LargeSize                   m_CleartextSize;
+    AP4_Position                    m_CleartextPosition;
+    std::shared_ptr<AP4_ByteStream> m_CleartextStream;
+    AP4_LargeSize                   m_EncryptedSize;
+    AP4_Position                    m_EncryptedPosition;
+    AP4_StreamCipher*               m_StreamCipher;
+    AP4_UI08                        m_Buffer[1024+16];
+    AP4_Size                        m_BufferFullness;
+    AP4_Size                        m_BufferOffset;
 };
 
 #endif // _AP4_PROTECTION_H_

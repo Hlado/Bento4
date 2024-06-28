@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -138,13 +140,13 @@ FindFragmentMapEntry(AP4_Array<FragmentMapEntry>& fragment_map, AP4_UI64 fragmen
 |   AP4_Processor::ProcessFragments
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_Processor::ProcessFragments(AP4_MoovAtom*              moov, 
-                                AP4_List<AP4_AtomLocator>& atoms, 
-                                AP4_ContainerAtom*         mfra,
-                                AP4_SidxAtom*              sidx,
-                                AP4_Position               sidx_position,
-                                AP4_ByteStream&            input, 
-                                AP4_ByteStream&            output)
+AP4_Processor::ProcessFragments(AP4_MoovAtom*                   moov, 
+                                AP4_List<AP4_AtomLocator>&      atoms, 
+                                AP4_ContainerAtom*              mfra,
+                                AP4_SidxAtom*                   sidx,
+                                AP4_Position                    sidx_position,
+                                std::shared_ptr<AP4_ByteStream> input, 
+                                AP4_ByteStream&                 output)
 {
     unsigned int fragment_index = 0;
     AP4_Array<FragmentMapEntry> fragment_map;
@@ -217,7 +219,7 @@ AP4_Processor::ProcessFragments(AP4_MoovAtom*              moov,
             }
 
             // create the handler for this traf
-            AP4_Processor::FragmentHandler* handler = CreateFragmentHandler(trak, trex, traf, input, atom_offset);
+            AP4_Processor::FragmentHandler* handler = CreateFragmentHandler(trak, trex, traf, *input, atom_offset);
             if (handler) {
                 result = handler->ProcessFragment();
                 if (AP4_FAILED(result)) return result;
@@ -226,7 +228,7 @@ AP4_Processor::ProcessFragments(AP4_MoovAtom*              moov,
             
             // create a sample table object so we can read the sample data
             AP4_FragmentSampleTable* sample_table = NULL;
-            result = fragment->CreateSampleTable(moov, tfhd->GetTrackId(), &input, atom_offset, mdat_payload_offset, 0, sample_table);
+            result = fragment->CreateSampleTable(moov, tfhd->GetTrackId(), input, atom_offset, mdat_payload_offset, 0, sample_table);
             if (AP4_FAILED(result)) return result;
             sample_tables.Append(sample_table);
             
@@ -434,11 +436,11 @@ AP4_Processor::CreateFragmentHandler(AP4_TrakAtom*      /* trak */,
 |   AP4_Processor::Process
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_Processor::Process(AP4_ByteStream&   input, 
-                       AP4_ByteStream&   output,
-                       AP4_ByteStream*   fragments,
-                       ProgressListener* listener,
-                       AP4_AtomFactory&  atom_factory)
+AP4_Processor::ProcessInternal(std::shared_ptr<AP4_ByteStream> input,
+                               AP4_ByteStream&                 output,
+                               std::shared_ptr<AP4_ByteStream> fragments,
+                               ProgressListener*               listener,
+                               AP4_AtomFactory&                atom_factory)
 {
     // read all atoms.
     // keep all atoms except [mdat]
@@ -454,7 +456,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
     unsigned int                sidx_count = 0;
     for (AP4_Atom* atom = NULL;
         AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(input, atom));
-        input.Tell(stream_offset)) {
+        input->Tell(stream_offset)) {
         if (atom->GetType() == AP4_ATOM_TYPE_MDAT) {
             delete atom;
             continue;
@@ -496,7 +498,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
     if (fragments) {
         stream_offset = 0;
         for (AP4_Atom* atom = NULL;
-            AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(*fragments, atom));
+            AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(fragments, atom));
             fragments->Tell(stream_offset)) {
             if (atom->GetType() == AP4_ATOM_TYPE_MDAT) {
                 delete atom;
@@ -507,7 +509,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
     }
     
     // initialize the processor
-    AP4_Result result = Initialize(top_level, input);
+    AP4_Result result = Initialize(top_level, *input);
     if (AP4_FAILED(result)) return result;
 
     // process the tracks if we have a moov atom
@@ -537,7 +539,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
             if (stbl == NULL) continue;
             
             // see if there's an external data source for this track
-            AP4_ByteStream* trak_data_stream = &input;
+            std::shared_ptr<AP4_ByteStream> trak_data_stream = input;
             for (AP4_List<ExternalTrackData>::Item* ditem = m_ExternalTrackData.FirstItem(); ditem; ditem=ditem->GetNext()) {
                 ExternalTrackData* tdata = ditem->GetData();
                 if (tdata->m_TrackId == trak->GetId()) {
@@ -550,7 +552,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
             m_TrackHandlers[index] = CreateTrackHandler(trak);
             m_TrackIds[index]      = trak->GetId();
             cursors[index].m_Locator.m_TrakIndex   = index;
-            cursors[index].m_Locator.m_SampleTable = new AP4_AtomSampleTable(stbl, *trak_data_stream);
+            cursors[index].m_Locator.m_SampleTable = new AP4_AtomSampleTable(stbl, trak_data_stream);
             cursors[index].m_Locator.m_SampleIndex = 0;
             cursors[index].m_Locator.m_ChunkIndex  = 0;
             if (cursors[index].m_Locator.m_SampleTable->GetSampleCount()) {
@@ -723,7 +725,7 @@ AP4_Processor::Process(AP4_ByteStream&   input,
         }
         
         // process the fragments, if any
-        result = ProcessFragments(moov, frags, mfra, sidx, sidx_position, fragments?*fragments:input, output);
+        result = ProcessFragments(moov, frags, mfra, sidx, sidx_position, fragments != nullptr ? fragments : input, output);
         if (AP4_FAILED(result)) return result;
         
         // update and re-write the sidx if we have one
@@ -768,25 +770,25 @@ AP4_Processor::Process(AP4_ByteStream&   input,
 |   AP4_Processor::Process
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_Processor::Process(AP4_ByteStream&   input, 
-                       AP4_ByteStream&   output,
-                       ProgressListener* listener,
-                       AP4_AtomFactory&  atom_factory)
+AP4_Processor::Process(std::shared_ptr<AP4_ByteStream> input, 
+                       AP4_ByteStream&                 output,
+                       ProgressListener*               listener,
+                       AP4_AtomFactory&                atom_factory)
 {
-    return Process(input, output, NULL, listener, atom_factory);
+    return ProcessInternal(input, output, nullptr, listener, atom_factory);
 }
 
 /*----------------------------------------------------------------------
 |   AP4_Processor::Process
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_Processor::Process(AP4_ByteStream&   fragments, 
-                       AP4_ByteStream&   output,
-                       AP4_ByteStream&   init,
-                       ProgressListener* listener,
-                       AP4_AtomFactory&  atom_factory)
+AP4_Processor::Process(std::shared_ptr<AP4_ByteStream> fragments,
+                       AP4_ByteStream&                 output,
+                       std::shared_ptr<AP4_ByteStream> init,
+                       ProgressListener*               listener,
+                       AP4_AtomFactory&                atom_factory)
 {
-    return Process(init, output, &fragments, listener, atom_factory);
+    return ProcessInternal(init, output, fragments, listener, atom_factory);
 }
 
 /*----------------------------------------------------------------------

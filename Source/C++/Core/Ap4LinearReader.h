@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+ //Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_LINEAR_READER_H_
 #define _AP4_LINEAR_READER_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4Movie.h"
 #include "Ap4Sample.h"
 #include "Ap4Protection.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -55,7 +59,7 @@ const unsigned int AP4_LINEAR_READER_FLAG_EOS    = 2;
 +---------------------------------------------------------------------*/
 class AP4_LinearReader {
 public:
-    AP4_LinearReader(AP4_Movie& movie, AP4_ByteStream* fragment_stream = NULL);
+    AP4_LinearReader(AP4_Movie& movie, std::shared_ptr<AP4_ByteStream> fragment_stream = nullptr);
     virtual ~AP4_LinearReader();
     
     AP4_Result EnableTrack(AP4_UI32 track_id);
@@ -173,16 +177,16 @@ protected:
     void       FlushQueues();
     
     // members
-    AP4_Movie&          m_Movie;
-    bool                m_HasFragments;
-    AP4_MovieFragment*  m_Fragment;
-    AP4_ByteStream*     m_FragmentStream;
-    AP4_Position        m_CurrentFragmentPosition;
-    AP4_Position        m_NextFragmentPosition;
-    AP4_Array<Tracker*> m_Trackers;
-    AP4_Size            m_BufferFullness;
-    AP4_Size            m_BufferFullnessPeak;
-    AP4_ContainerAtom*  m_Mfra;
+    AP4_Movie&                      m_Movie;
+    bool                            m_HasFragments;
+    AP4_MovieFragment*              m_Fragment;
+    std::shared_ptr<AP4_ByteStream> m_FragmentStream;
+    AP4_Position                    m_CurrentFragmentPosition;
+    AP4_Position                    m_NextFragmentPosition;
+    AP4_Array<Tracker*>             m_Trackers;
+    AP4_Size                        m_BufferFullness;
+    AP4_Size                        m_BufferFullnessPeak;
+    AP4_ContainerAtom*              m_Mfra;
 };
 
 /*----------------------------------------------------------------------

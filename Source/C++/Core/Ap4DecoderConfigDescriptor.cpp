@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -69,34 +71,33 @@ AP4_DecoderConfigDescriptor::AP4_DecoderConfigDescriptor(
 |   AP4_DecoderConfigDescriptor::AP4_DecoderConfigDescriptor
 +---------------------------------------------------------------------*/
 AP4_DecoderConfigDescriptor::AP4_DecoderConfigDescriptor(
-    AP4_ByteStream& stream, AP4_Size header_size, AP4_Size payload_size) :
+    std::shared_ptr<AP4_ByteStream> stream, AP4_Size header_size, AP4_Size payload_size) :
     AP4_Descriptor(AP4_DESCRIPTOR_TAG_DECODER_CONFIG, 
                    header_size, 
                    payload_size)
 {
     // read descriptor fields
     if (payload_size < 13) return;
-    stream.ReadUI08(m_ObjectTypeIndication);
+    stream->ReadUI08(m_ObjectTypeIndication);
     unsigned char bits;
-    stream.ReadUI08(bits);
+    stream->ReadUI08(bits);
     m_StreamType = (bits>>2)&0x3F;
     m_UpStream   = bits&2 ? true:false; 
-    stream.ReadUI24(m_BufferSize);
-    stream.ReadUI32(m_MaxBitrate);
-    stream.ReadUI32(m_AverageBitrate);
+    stream->ReadUI24(m_BufferSize);
+    stream->ReadUI32(m_MaxBitrate);
+    stream->ReadUI32(m_AverageBitrate);
     payload_size -= 13;
     
     // read other descriptors
     AP4_Position offset;
-    stream.Tell(offset);
-    AP4_SubStream* substream = new AP4_SubStream(stream, offset, payload_size);
+    stream->Tell(offset);
+    auto substream = std::make_shared<AP4_SubStream>(stream, offset, payload_size);
     AP4_Descriptor* descriptor = NULL;
-    while (AP4_DescriptorFactory::CreateDescriptorFromStream(*substream, 
+    while (AP4_DescriptorFactory::CreateDescriptorFromStream(substream, 
                                                              descriptor) 
            == AP4_SUCCESS) {
         m_SubDescriptors.Add(descriptor);
     }
-    substream->Release();
 }
 
 /*----------------------------------------------------------------------

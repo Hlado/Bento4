@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -143,12 +145,8 @@ AP4_PsshAtom::GetKid(unsigned int index)
 AP4_Result
 AP4_PsshAtom::SetData(AP4_Atom& atom)
 {
-    AP4_MemoryByteStream* memstr = new AP4_MemoryByteStream(m_Data);
-    if (!memstr) {
-        return AP4_ERROR_OUT_OF_MEMORY;
-    }
-    AP4_Result result = atom.Write(*memstr);
-    memstr->Release();
+    AP4_MemoryByteStream memstr(m_Data);
+    AP4_Result result = atom.Write(memstr);
     RecomputeSize();
     return result;
 }
@@ -246,17 +244,16 @@ AP4_PsshAtom::InspectFields(AP4_AtomInspector& inspector)
     }
     if (inspector.GetVerbosity() >= 1) {
         if (AP4_CompareMemory(m_SystemId, AP4_MARLIN_PSSH_SYSTEM_ID, 16) == 0) {
-            AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream(m_Data);
+            auto mbs = std::make_shared<AP4_MemoryByteStream>(m_Data);
             AP4_Atom* atom;
             AP4_DefaultAtomFactory atom_factory;
-            while (atom_factory.CreateAtomFromStream(*mbs, atom) == AP4_SUCCESS) {
+            while (atom_factory.CreateAtomFromStream(mbs, atom) == AP4_SUCCESS) {
                 AP4_Position position;
                 mbs->Tell(position);
                 atom->Inspect(inspector);
                 mbs->Seek(position);
                 delete atom;
             }
-            mbs->Release();
         } else {
             inspector.AddField("data", m_Data.GetData(), m_Data.GetDataSize());
         }

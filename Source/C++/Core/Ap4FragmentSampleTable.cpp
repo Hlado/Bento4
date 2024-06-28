@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -39,15 +41,17 @@
 #include "Ap4TfdtAtom.h"
 #include "Ap4MovieFragment.h"
 
+#include <memory>
+
 /*----------------------------------------------------------------------
 |   AP4_FragmentSampleTable::AP4_FragmentSampleTable
 +---------------------------------------------------------------------*/
-AP4_FragmentSampleTable::AP4_FragmentSampleTable(AP4_ContainerAtom* traf, 
-                                                 AP4_TrexAtom*      trex,
-                                                 AP4_ByteStream*    sample_stream,
-                                                 AP4_Position       moof_offset,
-                                                 AP4_Position       mdat_payload_offset,
-                                                 AP4_UI64           dts_origin) :
+AP4_FragmentSampleTable::AP4_FragmentSampleTable(AP4_ContainerAtom*              traf, 
+                                                 AP4_TrexAtom*                   trex,
+                                                 std::shared_ptr<AP4_ByteStream> sample_stream,
+                                                 AP4_Position                    moof_offset,
+                                                 AP4_Position                    mdat_payload_offset,
+                                                 AP4_UI64                        dts_origin) :
     m_Duration(0)
 {
     AP4_TfhdAtom* tfhd = AP4_DYNAMIC_CAST(AP4_TfhdAtom, traf->GetChild(AP4_ATOM_TYPE_TFHD));
@@ -104,13 +108,13 @@ AP4_FragmentSampleTable::~AP4_FragmentSampleTable()
 |   AP4_FragmentSampleTable::AddTrun
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_FragmentSampleTable::AddTrun(AP4_TrunAtom*   trun, 
-                                 AP4_TfhdAtom*   tfhd, 
-                                 AP4_TrexAtom*   trex,
-                                 AP4_ByteStream* sample_stream,
-                                 AP4_Position    moof_offset,
-                                 AP4_Position&   payload_offset,
-                                 AP4_UI64&       dts_origin)
+AP4_FragmentSampleTable::AddTrun(AP4_TrunAtom*                   trun, 
+                                 AP4_TfhdAtom*                   tfhd, 
+                                 AP4_TrexAtom*                   trex,
+                                 std::shared_ptr<AP4_ByteStream> sample_stream,
+                                 AP4_Position                    moof_offset,
+                                 AP4_Position&                   payload_offset,
+                                 AP4_UI64&                       dts_origin)
 {
     AP4_Flags tfhd_flags = tfhd->GetFlags();
     AP4_Flags trun_flags = trun->GetFlags();
@@ -208,7 +212,7 @@ AP4_FragmentSampleTable::AddTrun(AP4_TrunAtom*   trun,
         }
         
         // data stream
-        if (sample_stream) sample.SetDataStream(*sample_stream);
+        if (sample_stream != nullptr) sample.SetDataStream(sample_stream);
         
         // data offset
         sample.SetOffset(data_offset);

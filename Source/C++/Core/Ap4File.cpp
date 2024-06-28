@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -53,9 +55,9 @@ AP4_File::AP4_File(AP4_Movie* movie) :
 /*----------------------------------------------------------------------
 |   AP4_File::AP4_File
 +---------------------------------------------------------------------*/
-AP4_File::AP4_File(AP4_ByteStream&  stream, 
-                   AP4_AtomFactory& atom_factory,
-                   bool             moov_only) :
+AP4_File::AP4_File(std::shared_ptr<AP4_ByteStream> stream,
+                   AP4_AtomFactory&                atom_factory,
+                   bool                            moov_only) :
     m_Movie(NULL),
     m_FileType(NULL),
     m_MetaData(NULL),
@@ -67,8 +69,8 @@ AP4_File::AP4_File(AP4_ByteStream&  stream,
 /*----------------------------------------------------------------------
 |   AP4_File::AP4_File
 +---------------------------------------------------------------------*/
-AP4_File::AP4_File(AP4_ByteStream&  stream, 
-                   bool             moov_only) :
+AP4_File::AP4_File(std::shared_ptr<AP4_ByteStream> stream,
+                   bool                            moov_only) :
     m_Movie(NULL),
     m_FileType(NULL),
     m_MetaData(NULL),
@@ -91,16 +93,16 @@ AP4_File::~AP4_File()
 |   AP4_File::ParseStream
 +---------------------------------------------------------------------*/
 void
-AP4_File::ParseStream(AP4_ByteStream&  stream,
-                      AP4_AtomFactory& atom_factory,
-                      bool             moov_only)
+AP4_File::ParseStream(std::shared_ptr<AP4_ByteStream> stream,
+                      AP4_AtomFactory&                atom_factory,
+                      bool                            moov_only)
 {
     // parse top-level atoms
     AP4_Atom*    atom;
     AP4_Position stream_position;
     bool         keep_parsing = true;
     while (keep_parsing &&
-           AP4_SUCCEEDED(stream.Tell(stream_position)) && 
+           AP4_SUCCEEDED(stream->Tell(stream_position)) && 
            AP4_SUCCEEDED(atom_factory.CreateAtomFromStream(stream, atom))) {
         AddChild(atom);
         switch (atom->GetType()) {

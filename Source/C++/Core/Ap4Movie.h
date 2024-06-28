@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_MOVIE_H_
 #define _AP4_MOVIE_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4MvhdAtom.h"
 #include "Ap4Track.h"
 #include "Ap4List.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -55,7 +59,7 @@ public:
               AP4_UI64 duration = 0,
               AP4_UI64 creation_time = 0,
               AP4_UI64 modification_time = 0);
-    AP4_Movie(AP4_MoovAtom* moov, AP4_ByteStream& sample_stream, bool transfer_moov_ownership = true);
+    AP4_Movie(AP4_MoovAtom* moov,std::shared_ptr<AP4_ByteStream> sample_stream, bool transfer_moov_ownership = true);
     virtual ~AP4_Movie();
     AP4_Result Inspect(AP4_AtomInspector& inspector);
 

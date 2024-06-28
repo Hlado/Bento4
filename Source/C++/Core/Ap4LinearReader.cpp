@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -40,11 +42,11 @@
 /*----------------------------------------------------------------------
 |   AP4_LinearReader::AP4_LinearReader
 +---------------------------------------------------------------------*/
-AP4_LinearReader::AP4_LinearReader(AP4_Movie&      movie, 
-                                   AP4_ByteStream* fragment_stream) :
+AP4_LinearReader::AP4_LinearReader(AP4_Movie&                      movie, 
+                                   std::shared_ptr<AP4_ByteStream> fragment_stream) :
     m_Movie(movie),
     m_Fragment(NULL),
-    m_FragmentStream(fragment_stream),
+    m_FragmentStream(std::move(fragment_stream)),
     m_CurrentFragmentPosition(0),
     m_NextFragmentPosition(0),
     m_BufferFullness(0),
@@ -52,9 +54,8 @@ AP4_LinearReader::AP4_LinearReader(AP4_Movie&      movie,
     m_Mfra(NULL)
 {
     m_HasFragments = movie.HasFragments();
-    if (fragment_stream) {
-        fragment_stream->AddReference();
-        fragment_stream->Tell(m_CurrentFragmentPosition);
+    if (m_FragmentStream != nullptr) {
+        m_FragmentStream->Tell(m_CurrentFragmentPosition);
         m_NextFragmentPosition = m_CurrentFragmentPosition;
     }
 }
@@ -69,7 +70,6 @@ AP4_LinearReader::~AP4_LinearReader()
     }
     delete m_Fragment;
     delete m_Mfra;
-    if (m_FragmentStream) m_FragmentStream->Release();
 }
 
 /*----------------------------------------------------------------------
@@ -184,7 +184,7 @@ AP4_LinearReader::SeekTo(AP4_UI32 time_ms, AP4_UI32* actual_time_ms)
                             AP4_Atom* mfra = NULL;
                             AP4_LargeSize available = mfra_size;
                             AP4_DefaultAtomFactory atom_factory;
-                            atom_factory.CreateAtomFromStream(*m_FragmentStream, available, mfra);
+                            atom_factory.CreateAtomFromStream(m_FragmentStream, available, mfra);
                             m_Mfra = AP4_DYNAMIC_CAST(AP4_ContainerAtom, mfra);
                         }
                     }
@@ -347,7 +347,7 @@ AP4_LinearReader::AdvanceFragment()
         AP4_Atom* atom = NULL;
         AP4_Position last_position = 0;
         m_FragmentStream->Tell(last_position);
-        result = atom_factory.CreateAtomFromStream(*m_FragmentStream, atom);
+        result = atom_factory.CreateAtomFromStream(m_FragmentStream, atom);
         if (AP4_SUCCEEDED(result)) {
             if (atom->GetType() == AP4_ATOM_TYPE_MOOF) {
                 AP4_ContainerAtom* moof = AP4_DYNAMIC_CAST(AP4_ContainerAtom, atom);

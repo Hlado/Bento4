@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+ //Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -52,9 +54,9 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_AtomSampleTable)
 /*----------------------------------------------------------------------
 |   AP4_AtomSampleTable::AP4_AtomSampleTable
 +---------------------------------------------------------------------*/
-AP4_AtomSampleTable::AP4_AtomSampleTable(AP4_ContainerAtom* stbl, 
-                                         AP4_ByteStream&    sample_stream) :
-    m_SampleStream(sample_stream)
+AP4_AtomSampleTable::AP4_AtomSampleTable(AP4_ContainerAtom*              stbl, 
+                                         std::shared_ptr<AP4_ByteStream> sample_stream) :
+    m_SampleStream(std::move(sample_stream))
 {
     m_StscAtom = AP4_DYNAMIC_CAST(AP4_StscAtom, stbl->GetChild(AP4_ATOM_TYPE_STSC));
     m_StcoAtom = AP4_DYNAMIC_CAST(AP4_StcoAtom, stbl->GetChild(AP4_ATOM_TYPE_STCO));
@@ -65,9 +67,6 @@ AP4_AtomSampleTable::AP4_AtomSampleTable(AP4_ContainerAtom* stbl,
     m_StssAtom = AP4_DYNAMIC_CAST(AP4_StssAtom, stbl->GetChild(AP4_ATOM_TYPE_STSS));
     m_StsdAtom = AP4_DYNAMIC_CAST(AP4_StsdAtom, stbl->GetChild(AP4_ATOM_TYPE_STSD));
     m_Co64Atom = AP4_DYNAMIC_CAST(AP4_Co64Atom, stbl->GetChild(AP4_ATOM_TYPE_CO64));
-
-    // keep a reference to the sample stream
-    m_SampleStream.AddReference();
 }
 
 /*----------------------------------------------------------------------
@@ -75,7 +74,7 @@ AP4_AtomSampleTable::AP4_AtomSampleTable(AP4_ContainerAtom* stbl,
 +---------------------------------------------------------------------*/
 AP4_AtomSampleTable::~AP4_AtomSampleTable()
 {
-    m_SampleStream.Release();
+
 }
 
 /*----------------------------------------------------------------------

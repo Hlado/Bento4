@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -138,16 +140,13 @@ AP4_HintTrackReader::GetRtpSample(AP4_Ordinal index)
 
     // renew the sample data
     delete m_RtpSampleData;
-    AP4_ByteStream& rtp_data_stream = *m_CurrentHintSample.GetDataStream();
-    rtp_data_stream.Seek(m_CurrentHintSample.GetOffset());
-    m_RtpSampleData = new AP4_RtpSampleData(rtp_data_stream,
+    auto rtp_data_stream = m_CurrentHintSample.GetDataStream();
+    rtp_data_stream->Seek(m_CurrentHintSample.GetOffset());
+    m_RtpSampleData = new AP4_RtpSampleData(*rtp_data_stream,
                                             m_CurrentHintSample.GetSize());
 
     // reinit the packet index
     m_PacketIndex = 0;
-
-    // release the stream
-    rtp_data_stream.Release();
 
     return AP4_SUCCESS;
 }
@@ -218,16 +217,20 @@ AP4_HintTrackReader::GetNextPacket(AP4_DataBuffer& packet_data,
     AP4_Result result = AP4_SUCCESS;
 
     // get the next rtp sample if needed
-    AP4_List<AP4_RtpPacket>* packets = &m_RtpSampleData->GetPackets();
-    while (m_PacketIndex == packets->ItemCount()) { // while: handle the 0 packet case
+    auto *packets = &m_RtpSampleData->GetPackets();
+    while (m_PacketIndex == packets->size()) { // while: handle the 0 packet case
         result = GetRtpSample(++m_SampleIndex);
         if (AP4_FAILED(result)) return result;
         packets = &m_RtpSampleData->GetPackets();
     }
 
     // get the packet
-    AP4_RtpPacket* packet;
-    result = packets->Get(m_PacketIndex++, packet);
+    if(m_PacketIndex > packets->size()) {
+        return AP4_ERROR_NO_SUCH_ITEM;
+    }
+    auto it = packets->begin();
+    std::advance(it,m_PacketIndex++) ;
+    auto packet = *it;
     if (AP4_FAILED(result)) return result;
 
     // build it
@@ -244,41 +247,37 @@ AP4_HintTrackReader::GetNextPacket(AP4_DataBuffer& packet_data,
 |   AP4_HintTrackReader::BuildRtpPacket
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_HintTrackReader::BuildRtpPacket(AP4_RtpPacket*  packet, 
-                                    AP4_DataBuffer& packet_data)
+AP4_HintTrackReader::BuildRtpPacket(std::shared_ptr<AP4_RtpPacket> packet, 
+                                    AP4_DataBuffer&                packet_data)
 {
     // set the data size
     AP4_Result result = packet_data.SetDataSize(packet->GetConstructedDataSize());
     if (AP4_FAILED(result)) return result;
 
     // now write
-    AP4_ByteStream* stream = new AP4_MemoryByteStream(packet_data); 
+    AP4_MemoryByteStream stream(packet_data);
 
     // header + ssrc
-    stream->WriteUI08(0x80 | (packet->GetPBit() << 5) | (packet->GetXBit() << 4));
-    stream->WriteUI08((packet->GetMBit() << 7) | packet->GetPayloadType());
-    stream->WriteUI16(m_RtpSequenceStart + packet->GetSequenceSeed());
-    stream->WriteUI32(m_RtpTimeStampStart + (AP4_UI32)m_CurrentHintSample.GetCts() + packet->GetTimeStampOffset());
-    stream->WriteUI32(m_Ssrc);
+    stream.WriteUI08(0x80 | (packet->GetPBit() << 5) | (packet->GetXBit() << 4));
+    stream.WriteUI08((packet->GetMBit() << 7) | packet->GetPayloadType());
+    stream.WriteUI16(m_RtpSequenceStart + packet->GetSequenceSeed());
+    stream.WriteUI32(m_RtpTimeStampStart + (AP4_UI32)m_CurrentHintSample.GetCts() + packet->GetTimeStampOffset());
+    stream.WriteUI32(m_Ssrc);
 
-    AP4_List<AP4_RtpConstructor>::Item* constructors_it 
-        = packet->GetConstructors().FirstItem();
-    while (constructors_it != NULL) {
-        AP4_RtpConstructor* constructor = constructors_it->GetData();
-
+    for(auto &ctor : packet->GetConstructors()) {
         // add data to the packet according to the constructor
-        switch (constructor->GetType()) {
+        switch (ctor->GetType()) {
             case AP4_RTP_CONSTRUCTOR_TYPE_NOOP:
                 // nothing to do here
                 break;
             case AP4_RTP_CONSTRUCTOR_TYPE_IMMEDIATE:
                 result = WriteImmediateRtpData(
-                    static_cast<AP4_ImmediateRtpConstructor*>(constructor), stream);
+                    dynamic_cast<AP4_ImmediateRtpConstructor&>(*ctor), stream);
                 if (AP4_FAILED(result)) return result;
                 break;
             case AP4_RTP_CONSTRUCTOR_TYPE_SAMPLE:
                 result = WriteSampleRtpData(
-                    static_cast<AP4_SampleRtpConstructor*>(constructor), stream);
+                    dynamic_cast<AP4_SampleRtpConstructor&>(*ctor), stream);
                 if (AP4_FAILED(result)) return result;
                 break;
             case AP4_RTP_CONSTRUCTOR_TYPE_SAMPLE_DESC:
@@ -287,13 +286,7 @@ AP4_HintTrackReader::BuildRtpPacket(AP4_RtpPacket*  packet,
                 // unknown constructor type
                 return AP4_FAILURE;
         }
-
-        // iterate
-        constructors_it = constructors_it->GetNext();
     }
-
-    // release the stream
-    stream->Release();
 
     return result;
 }
@@ -302,22 +295,22 @@ AP4_HintTrackReader::BuildRtpPacket(AP4_RtpPacket*  packet,
 |   AP4_HintTrackReader::WriteImmediateRtpData
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_HintTrackReader::WriteImmediateRtpData(AP4_ImmediateRtpConstructor* constructor, 
-                                           AP4_ByteStream*              data_stream)
+AP4_HintTrackReader::WriteImmediateRtpData(AP4_ImmediateRtpConstructor& constructor, 
+                                           AP4_ByteStream&              data_stream)
 {
-    const AP4_DataBuffer& data_buffer = constructor->GetData();
-    return data_stream->Write(data_buffer.GetData(), data_buffer.GetDataSize());
+    const AP4_DataBuffer& data_buffer = constructor.GetData();
+    return data_stream.Write(data_buffer.GetData(), data_buffer.GetDataSize());
 }
 
 /*----------------------------------------------------------------------
 |   AP4_HintTrackReader::WriteSampleRtpData
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_HintTrackReader::WriteSampleRtpData(AP4_SampleRtpConstructor* constructor, 
-                                        AP4_ByteStream*           data_stream)
+AP4_HintTrackReader::WriteSampleRtpData(AP4_SampleRtpConstructor& constructor, 
+                                        AP4_ByteStream&           data_stream)
 {
     AP4_Track* referenced_track = NULL;
-    if (constructor->GetTrackRefIndex() == 0xFF) {
+    if (constructor.GetTrackRefIndex() == 0xFF) {
         // data is in the hint track
         referenced_track = &m_HintTrack;
     } else {
@@ -328,15 +321,15 @@ AP4_HintTrackReader::WriteSampleRtpData(AP4_SampleRtpConstructor* constructor,
 
     // write the sample data
     AP4_Sample sample;
-    AP4_Result result = referenced_track->GetSample(constructor->GetSampleNum()-1, // adjust
+    AP4_Result result = referenced_track->GetSample(constructor.GetSampleNum()-1, // adjust
                                                     sample);
     if (AP4_FAILED(result)) return result;
-    AP4_DataBuffer buffer(constructor->GetLength());
+    AP4_DataBuffer buffer(constructor.GetLength());
     result = sample.ReadData(
-        buffer, constructor->GetLength(), constructor->GetSampleOffset());
+        buffer, constructor.GetLength(), constructor.GetSampleOffset());
     if (AP4_FAILED(result)) return result;
 
     // write the data
-    return data_stream->Write(buffer.GetData(), buffer.GetDataSize());
+    return data_stream.Write(buffer.GetData(), buffer.GetDataSize());
 }
 

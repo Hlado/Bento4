@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -38,14 +40,14 @@
 |   AP4_DrefAtom::Create
 +---------------------------------------------------------------------*/
 AP4_DrefAtom* 
-AP4_DrefAtom::Create(AP4_UI32         size,
-                     AP4_ByteStream&  stream,
-                     AP4_AtomFactory& atom_factory)
+AP4_DrefAtom::Create(AP4_UI32                        size,
+                     std::shared_ptr<AP4_ByteStream> stream,
+                     AP4_AtomFactory&                atom_factory)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_DrefAtom(size, version, flags, stream, atom_factory);
 }
@@ -66,11 +68,11 @@ AP4_DrefAtom::AP4_DrefAtom(AP4_Atom** refs, AP4_Cardinal refs_count) :
 /*----------------------------------------------------------------------
 |   AP4_DrefAtom::AP4_DrefAtom
 +---------------------------------------------------------------------*/
-AP4_DrefAtom::AP4_DrefAtom(AP4_UI32         size,
-                           AP4_UI08         version,
-                           AP4_UI32         flags,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_DrefAtom::AP4_DrefAtom(AP4_UI32                        size,
+                           AP4_UI08                       version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_DREF, size, false, version, flags)
 {
     if (size <= AP4_FULL_ATOM_HEADER_SIZE + 4) {
@@ -79,7 +81,7 @@ AP4_DrefAtom::AP4_DrefAtom(AP4_UI32         size,
     
     // read the number of entries
     AP4_UI32 entry_count;
-    AP4_Result result = stream.ReadUI32(entry_count);
+    AP4_Result result = stream->ReadUI32(entry_count);
     if (AP4_FAILED(result)) return;
 
     // read children

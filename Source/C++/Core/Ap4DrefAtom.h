@@ -26,6 +26,9 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
+
 #ifndef _AP4_DREF_ATOM_H_
 #define _AP4_DREF_ATOM_H_
 
@@ -48,9 +51,9 @@ class AP4_DrefAtom : public AP4_ContainerAtom
 {
 public:
     // class methods
-    static AP4_DrefAtom* Create(AP4_UI32         size,
-                                AP4_ByteStream&  stream,
-                                AP4_AtomFactory& atom_factory);
+    static AP4_DrefAtom* Create(AP4_UI32                        size,
+                                std::shared_ptr<AP4_ByteStream> stream,
+                                AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_DrefAtom(AP4_Atom** refs, AP4_Cardinal refs_count);
@@ -58,11 +61,11 @@ public:
 
 private:
     // methods
-    AP4_DrefAtom(AP4_UI32         size,
-                 AP4_UI08         version,
-                 AP4_UI32         flags,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+    AP4_DrefAtom(AP4_UI32                        size,
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream,
+                 AP4_AtomFactory&                atom_factory);
 };
 
 #endif // _AP4_DREF_ATOM_H_

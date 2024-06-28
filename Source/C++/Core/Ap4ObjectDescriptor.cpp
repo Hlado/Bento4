@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -65,16 +67,16 @@ AP4_ObjectDescriptor::AP4_ObjectDescriptor(AP4_UI08 tag, AP4_UI16 id) :
 /*----------------------------------------------------------------------
 |   AP4_ObjectDescriptor::AP4_ObjectDescriptor
 +---------------------------------------------------------------------*/
-AP4_ObjectDescriptor::AP4_ObjectDescriptor(AP4_ByteStream& stream, 
-                                           AP4_UI08        tag,
-                                           AP4_Size        header_size,
-                                           AP4_Size        payload_size) :
+AP4_ObjectDescriptor::AP4_ObjectDescriptor(std::shared_ptr<AP4_ByteStream> stream,
+                                           AP4_UI08                        tag,
+                                           AP4_Size                        header_size,
+                                           AP4_Size                        payload_size) :
     AP4_Descriptor(tag, header_size, payload_size)
 {
     // read descriptor fields
     unsigned short bits;
-    if (payload_size < 2) return;
-    stream.ReadUI16(bits);
+    if(payload_size < 2) return;
+    stream->ReadUI16(bits);
     payload_size -= 2;
     m_ObjectDescriptorId = (bits>>6);
     m_UrlFlag = ((bits&(1<<5))!=0);
@@ -82,11 +84,11 @@ AP4_ObjectDescriptor::AP4_ObjectDescriptor(AP4_ByteStream& stream,
     if (m_UrlFlag) {
         unsigned char url_length;
         if (payload_size < 1) return;
-        stream.ReadUI08(url_length);
+        stream->ReadUI08(url_length);
         --payload_size;
         char url[256];
         if (payload_size < url_length) return;
-        stream.Read(url, url_length);
+        stream->Read(url, url_length);
         payload_size -= url_length;
         url[url_length] = '\0';
         m_Url = url;
@@ -94,15 +96,14 @@ AP4_ObjectDescriptor::AP4_ObjectDescriptor(AP4_ByteStream& stream,
 
     // read other descriptors
     AP4_Position offset;
-    stream.Tell(offset);
-    AP4_SubStream* substream = new AP4_SubStream(stream, offset, payload_size);
+    stream->Tell(offset);
+    auto substream = std::make_shared<AP4_SubStream>(stream, offset, payload_size);
     AP4_Descriptor* descriptor = NULL;
-    while (AP4_DescriptorFactory::CreateDescriptorFromStream(*substream, 
+    while (AP4_DescriptorFactory::CreateDescriptorFromStream(substream, 
                                                              descriptor) 
            == AP4_SUCCESS) {
         m_SubDescriptors.Add(descriptor);
     }
-    substream->Release();
 }
 
 /*----------------------------------------------------------------------
@@ -214,10 +215,10 @@ AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor(
 /*----------------------------------------------------------------------
 |   AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor
 +---------------------------------------------------------------------*/
-AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor(AP4_ByteStream& stream, 
-                                                         AP4_UI08        tag,
-                                                         AP4_Size        header_size,
-                                                         AP4_Size        payload_size) :
+AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor(std::shared_ptr<AP4_ByteStream> stream, 
+                                                         AP4_UI08                        tag,
+                                                         AP4_Size                        header_size,
+                                                         AP4_Size                        payload_size) :
     AP4_ObjectDescriptor(tag, header_size, payload_size),
     m_OdProfileLevelIndication(0),
     m_SceneProfileLevelIndication(0),
@@ -228,7 +229,7 @@ AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor(AP4_ByteStream& stream,
     // read descriptor fields
     unsigned short bits;
     if (payload_size < 2) return;
-    stream.ReadUI16(bits);
+    stream->ReadUI16(bits);
     payload_size -= 2;
     m_ObjectDescriptorId = (bits>>6);
     m_UrlFlag = ((bits&(1<<5))!=0);
@@ -237,35 +238,34 @@ AP4_InitialObjectDescriptor::AP4_InitialObjectDescriptor(AP4_ByteStream& stream,
     if (m_UrlFlag) {
         unsigned char url_length;
         if (payload_size < 1) return;
-        stream.ReadUI08(url_length);
+        stream->ReadUI08(url_length);
         --payload_size;
         char url[256];
         if (payload_size < url_length) return;
-        stream.Read(url, url_length);
+        stream->Read(url, url_length);
         payload_size -= url_length;
         url[url_length] = '\0';
         m_Url = url;
     } else {
         if (payload_size < 5) return;
-        stream.ReadUI08(m_OdProfileLevelIndication); 
-        stream.ReadUI08(m_SceneProfileLevelIndication); 
-        stream.ReadUI08(m_AudioProfileLevelIndication); 
-        stream.ReadUI08(m_VisualProfileLevelIndication); 
-        stream.ReadUI08(m_GraphicsProfileLevelIndication);
+        stream->ReadUI08(m_OdProfileLevelIndication); 
+        stream->ReadUI08(m_SceneProfileLevelIndication); 
+        stream->ReadUI08(m_AudioProfileLevelIndication); 
+        stream->ReadUI08(m_VisualProfileLevelIndication); 
+        stream->ReadUI08(m_GraphicsProfileLevelIndication);
         payload_size -= 5;
     }
     
     // read other descriptors
     AP4_Position offset;
-    stream.Tell(offset);
-    AP4_SubStream* substream = new AP4_SubStream(stream, offset, payload_size);
+    stream->Tell(offset);
+    auto substream = std::make_shared<AP4_SubStream>(stream, offset, payload_size);
     AP4_Descriptor* descriptor = NULL;
-    while (AP4_DescriptorFactory::CreateDescriptorFromStream(*substream, 
+    while (AP4_DescriptorFactory::CreateDescriptorFromStream(substream, 
                                                              descriptor) 
            == AP4_SUCCESS) {
         m_SubDescriptors.Add(descriptor);
     }
-    substream->Release();
 }
 
 /*----------------------------------------------------------------------
@@ -343,22 +343,20 @@ AP4_DescriptorUpdateCommand::AP4_DescriptorUpdateCommand(AP4_UI08 tag) :
 |   AP4_DescriptorUpdateCommand::AP4_DescriptorUpdateCommand
 +---------------------------------------------------------------------*/
 AP4_DescriptorUpdateCommand::AP4_DescriptorUpdateCommand(
-    AP4_ByteStream& stream, 
-    AP4_UI08        tag,
-    AP4_Size        header_size,
-    AP4_Size        payload_size) :
+    std::shared_ptr<AP4_ByteStream> stream, 
+    AP4_UI08                        tag,
+    AP4_Size                        header_size,
+    AP4_Size                        payload_size) :
     AP4_Command(tag, header_size, payload_size)
 {
     // read the descriptors
     AP4_Position offset;
-    stream.Tell(offset);
-    AP4_SubStream* substream = new AP4_SubStream(stream, offset, 
-                                                 payload_size);
+    stream->Tell(offset);
+    auto substream = std::make_shared<AP4_SubStream>(stream, offset, payload_size);
     AP4_Descriptor* descriptor = NULL;
-    while (AP4_DescriptorFactory::CreateDescriptorFromStream(*substream, descriptor) == AP4_SUCCESS) {
+    while (AP4_DescriptorFactory::CreateDescriptorFromStream(substream, descriptor) == AP4_SUCCESS) {
         m_Descriptors.Add(descriptor);
     }
-    substream->Release();
 }
 
 /*----------------------------------------------------------------------

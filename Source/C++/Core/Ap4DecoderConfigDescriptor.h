@@ -26,6 +26,9 @@
 |
  ****************************************************************/
 
+
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_DECODER_CONFIG_DESCRIPTOR_H_
 #define _AP4_DECODER_CONFIG_DESCRIPTOR_H_
 
@@ -36,6 +39,8 @@
 #include "Ap4List.h"
 #include "Ap4Descriptor.h"
 #include "Ap4DecoderSpecificInfoDescriptor.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -62,9 +67,9 @@ class AP4_DecoderConfigDescriptor : public AP4_Descriptor
                                 AP4_UI32 max_bitrate,
                                 AP4_UI32 avg_bitrate,
                                 AP4_DecoderSpecificInfoDescriptor* dsi);
-    AP4_DecoderConfigDescriptor(AP4_ByteStream& stream, 
-                                AP4_Size        header_size,
-                                AP4_Size        payload_size);
+    AP4_DecoderConfigDescriptor(std::shared_ptr<AP4_ByteStream> stream, 
+                                AP4_Size                        header_size,
+                                AP4_Size                        payload_size);
     virtual ~AP4_DecoderConfigDescriptor();
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);
     virtual AP4_Result Inspect(AP4_AtomInspector& inspector);

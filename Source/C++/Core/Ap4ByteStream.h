@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_BYTE_STREAM_H_
 #define _AP4_BYTE_STREAM_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4Results.h"
 #include "Ap4DataBuffer.h"
 
+#include <memory>
+
 /*----------------------------------------------------------------------
 |   class references
 +---------------------------------------------------------------------*/
@@ -45,9 +49,11 @@ class AP4_String;
 /*----------------------------------------------------------------------
 |   AP4_ByteStream
 +---------------------------------------------------------------------*/
-class AP4_ByteStream : public AP4_Referenceable
+class AP4_ByteStream
 {
  public:
+    virtual ~AP4_ByteStream() = default;
+
     // methods
     virtual AP4_Result ReadPartial(void*     buffer, 
                                    AP4_Size  bytes_to_read, 
@@ -85,7 +91,7 @@ class AP4_ByteStream : public AP4_Referenceable
 class AP4_SubStream : public AP4_ByteStream
 {
  public:
-    AP4_SubStream(AP4_ByteStream& container, 
+    AP4_SubStream(std::shared_ptr<AP4_ByteStream> container, 
                   AP4_Position    position, 
                   AP4_LargeSize   size);
 
@@ -106,19 +112,11 @@ class AP4_SubStream : public AP4_ByteStream
         return AP4_SUCCESS;
     }
 
-    // AP4_Referenceable methods
-    void AddReference();
-    void Release();
-
- protected:
-    virtual ~AP4_SubStream();
-
  private:
-    AP4_ByteStream& m_Container;
-    AP4_Position    m_Offset;
-    AP4_LargeSize   m_Size;
-    AP4_Position    m_Position;
-    AP4_Cardinal    m_ReferenceCount;
+    std::shared_ptr<AP4_ByteStream> m_Container;
+    AP4_Position                    m_Offset;
+    AP4_LargeSize                   m_Size;
+    AP4_Position                    m_Position;
 };
 
 /*----------------------------------------------------------------------
@@ -127,7 +125,7 @@ class AP4_SubStream : public AP4_ByteStream
 class AP4_DupStream : public AP4_ByteStream
 {
  public:
-    AP4_DupStream(AP4_ByteStream& original_stream);
+    AP4_DupStream(std::shared_ptr<AP4_ByteStream> original_stream);
 
     // AP4_ByteStream methods
     AP4_Result ReadPartial(void*     buffer, 
@@ -142,20 +140,12 @@ class AP4_DupStream : public AP4_ByteStream
         return AP4_SUCCESS;
     }
     AP4_Result GetSize(AP4_LargeSize& size) {
-        return m_OriginalStream.GetSize(size);
+        return m_OriginalStream->GetSize(size);
     }
 
-    // AP4_Referenceable methods
-    void AddReference();
-    void Release();
-
- protected:
-    virtual ~AP4_DupStream();
-
  private:
-    AP4_ByteStream& m_OriginalStream;
-    AP4_Position    m_Position;
-    AP4_Cardinal    m_ReferenceCount;
+    std::shared_ptr<AP4_ByteStream> m_OriginalStream;
+    AP4_Position                    m_Position;
 };
 
 /*----------------------------------------------------------------------
@@ -168,6 +158,7 @@ public:
     AP4_MemoryByteStream(const AP4_UI08* buffer, AP4_Size size);
     AP4_MemoryByteStream(AP4_DataBuffer& data_buffer); // data is read/written from/to supplied buffer, no ownership transfer
     AP4_MemoryByteStream(AP4_DataBuffer* data_buffer); // data is read/written from/to supplied buffer, ownership is transfered
+    virtual ~AP4_MemoryByteStream() override;
 
     // AP4_ByteStream methods
     AP4_Result ReadPartial(void*     buffer, 
@@ -186,23 +177,15 @@ public:
         return AP4_SUCCESS;
     }
 
-    // AP4_Referenceable methods
-    void AddReference();
-    void Release();
-
     // methods
     const AP4_UI08* GetData()     { return m_Buffer->GetData(); }
     AP4_UI08*       UseData()     { return m_Buffer->UseData(); }
     AP4_Size        GetDataSize() { return m_Buffer->GetDataSize(); }
 
-protected:
-    virtual ~AP4_MemoryByteStream();
-
 private:
     AP4_DataBuffer* m_Buffer;
     bool            m_BufferIsLocal;
     AP4_Position    m_Position;
-    AP4_Cardinal    m_ReferenceCount;
 };
 
 /*----------------------------------------------------------------------
@@ -211,7 +194,7 @@ private:
 class AP4_BufferedInputStream : public AP4_ByteStream
 {
 public:
-    AP4_BufferedInputStream(AP4_ByteStream& source, 
+    AP4_BufferedInputStream(std::shared_ptr<AP4_ByteStream> source,
                             AP4_Size        buffer_size=4096,
                             AP4_Size        seek_as_read_threshold=1024*128);
 
@@ -224,23 +207,17 @@ public:
                             AP4_Size&   bytes_written);
     AP4_Result Seek(AP4_Position position);
     AP4_Result Tell(AP4_Position& position);
-    AP4_Result GetSize(AP4_LargeSize& size) { return m_Source.GetSize(size); }
-
-    // AP4_Referenceable methods
-    void AddReference();
-    void Release();
+    AP4_Result GetSize(AP4_LargeSize& size) { return m_Source->GetSize(size); }
 
 protected:
-   ~AP4_BufferedInputStream() { m_Source.Release(); }
     AP4_Result Refill();
     
 private:
     AP4_DataBuffer  m_Buffer;
     AP4_Size        m_BufferPosition;
-    AP4_ByteStream& m_Source;
+    std::shared_ptr<AP4_ByteStream> m_Source;
     AP4_Position    m_SourcePosition;
     AP4_Size        m_SeekAsReadThreshold;
-    AP4_Cardinal    m_ReferenceCount;
 };
 
 #endif // _AP4_BYTE_STREAM_H_

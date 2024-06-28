@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -66,11 +68,12 @@ public:
     // constructor
     AP4_MarlinIpmpAtomTypeHandler(AP4_AtomFactory* atom_factory) :
       m_AtomFactory(atom_factory) {}
-      virtual AP4_Result CreateAtom(AP4_Atom::Type  type,
-          AP4_UI32        size,
-          AP4_ByteStream& stream,
-          AP4_Atom::Type  context,
-          AP4_Atom*&      atom);
+      virtual AP4_Result CreateAtom(
+          AP4_Atom::Type                  type,
+          AP4_UI32                        size,
+          std::shared_ptr<AP4_ByteStream> stream,
+          AP4_Atom::Type                  context,
+          AP4_Atom*&                      atom);
 
 private:
     // members
@@ -101,11 +104,11 @@ AP4_MarlinIpmpAtomFactory AP4_MarlinIpmpAtomFactory::Instance;
 |   AP4_MarlinIpmpAtomTypeHandler::CreateAtom
 +---------------------------------------------------------------------*/
 AP4_Result 
-AP4_MarlinIpmpAtomTypeHandler::CreateAtom(AP4_Atom::Type  type,
-                                          AP4_UI32        size,
-                                          AP4_ByteStream& stream,
-                                          AP4_Atom::Type  /*context*/,
-                                          AP4_Atom*&      atom)
+AP4_MarlinIpmpAtomTypeHandler::CreateAtom(AP4_Atom::Type                  type,
+                                          AP4_UI32                        size,
+                                          std::shared_ptr<AP4_ByteStream> stream,
+                                          AP4_Atom::Type                  /*context*/,
+                                          AP4_Atom*&                      atom)
 {
     switch (type) {
         case AP4_ATOM_TYPE_SATR:
@@ -113,7 +116,7 @@ AP4_MarlinIpmpAtomTypeHandler::CreateAtom(AP4_Atom::Type  type,
             break;
             
         case AP4_ATOM_TYPE_STYP:
-            atom = new AP4_NullTerminatedStringAtom(type, size, stream);
+            atom = new AP4_NullTerminatedStringAtom(type, size, *stream);
             break;
 
         default:
@@ -127,10 +130,10 @@ AP4_MarlinIpmpAtomTypeHandler::CreateAtom(AP4_Atom::Type  type,
 |   AP4_MarlinIpmpParser:Parse
 +---------------------------------------------------------------------*/
 AP4_Result 
-AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level, 
-                            AP4_ByteStream&      stream,
-                            AP4_List<SinfEntry>& sinf_entries,
-                            bool                 remove_od_data)
+AP4_MarlinIpmpParser::Parse(AP4_AtomParent&                 top_level, 
+                            std::shared_ptr<AP4_ByteStream> stream,
+                            AP4_List<SinfEntry>&            sinf_entries,
+                            bool                            remove_od_data)
 {
     // check the file type
     AP4_FtypAtom* ftyp = AP4_DYNAMIC_CAST(AP4_FtypAtom, top_level.GetChild(AP4_ATOM_TYPE_FTYP));
@@ -192,7 +195,7 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
     // adapt the sample data into a byte stream for parsing
     AP4_DataBuffer sample_data;
     od_sample.ReadData(sample_data);
-    AP4_MemoryByteStream* sample_stream = new AP4_MemoryByteStream(sample_data);
+    auto sample_stream = std::make_shared<AP4_MemoryByteStream>(sample_data);
     
     // look for one ObjectDescriptorUpdate command and 
     // one IPMP_DescriptorUpdate command
@@ -200,7 +203,7 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
     AP4_DescriptorUpdateCommand* ipmp_update = NULL;
     do {
         AP4_Command* command = NULL;
-        result = AP4_CommandFactory::CreateCommandFromStream(*sample_stream, command);
+        result = AP4_CommandFactory::CreateCommandFromStream(sample_stream, command);
         if (AP4_SUCCEEDED(result)) {
             // found a command in the sample, check the type
             switch (command->GetTag()) {
@@ -221,8 +224,6 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
             }
         }
     } while (AP4_SUCCEEDED(result));
-    sample_stream->Release();
-    sample_stream = NULL;
     
     // check that we have what we need
     if (od_update == NULL || ipmp_update == NULL) {
@@ -285,8 +286,9 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
         
         // parse the ipmp data into one or more 'sinf' atoms, and keep the one with the
         // right type
-        AP4_MemoryByteStream* data = new AP4_MemoryByteStream(ipmpd->GetData().GetData(),
-                                                              ipmpd->GetData().GetDataSize());
+        auto data =
+            std::make_shared<AP4_MemoryByteStream>(ipmpd->GetData().GetData(),
+                                                   ipmpd->GetData().GetDataSize());
         AP4_LargeSize bytes_available = ipmpd->GetData().GetDataSize();
         do {
             AP4_Atom* atom = NULL;
@@ -297,7 +299,7 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
             factory->PushContext(AP4_ATOM_TYPE('m','r','l','n'));
             
             // parse the next atom in the stream 
-            result = factory->CreateAtomFromStream(*data, bytes_available, atom);
+            result = factory->CreateAtomFromStream(data, bytes_available, atom);
             factory->PopContext();
             if (AP4_FAILED(result) || atom == NULL) break;
             
@@ -315,8 +317,7 @@ AP4_MarlinIpmpParser::Parse(AP4_AtomParent&      top_level,
                 }
             }
             delete atom;
-        } while (AP4_SUCCEEDED(result));
-        data->Release();        
+        } while (AP4_SUCCEEDED(result));      
     }
     
     // get rid of entries that have no SINF
@@ -496,9 +497,9 @@ AP4_MarlinIpmpDecryptingProcessor::~AP4_MarlinIpmpDecryptingProcessor()
 |   AP4_MarlinIpmpDecryptingProcessor:Initialize
 +---------------------------------------------------------------------*/
 AP4_Result 
-AP4_MarlinIpmpDecryptingProcessor::Initialize(AP4_AtomParent&   top_level, 
-                                              AP4_ByteStream&   stream,
-                                              ProgressListener* /*listener*/)
+AP4_MarlinIpmpDecryptingProcessor::Initialize(AP4_AtomParent&                 top_level, 
+                                              std::shared_ptr<AP4_ByteStream> stream,
+                                              ProgressListener*               /*listener*/)
 {
     AP4_Result result = AP4_MarlinIpmpParser::Parse(top_level, stream, m_SinfEntries, true);
     if (AP4_FAILED(result)) return result;
@@ -563,11 +564,10 @@ AP4_MarlinIpmpDecryptingProcessor::CreateTrackHandler(AP4_TrakAtom* trak)
         if (schi == NULL) return NULL; // no schi
         AP4_Atom* gkey = schi->GetChild(AP4_ATOM_TYPE_GKEY);
         if (gkey == NULL) return NULL; // no gkey
-        AP4_MemoryByteStream* gkey_data = new AP4_MemoryByteStream();
-        gkey->WriteFields(*gkey_data);
-        AP4_AesKeyUnwrap(group_key->GetData(), gkey_data->GetData(), gkey_data->GetDataSize(), unwrapped_key);
-        key = &unwrapped_key;
-        gkey_data->Release();        
+        AP4_MemoryByteStream gkey_data;
+        gkey->WriteFields(gkey_data);
+        AP4_AesKeyUnwrap(group_key->GetData(), gkey_data.GetData(), gkey_data.GetDataSize(), unwrapped_key);
+        key = &unwrapped_key;    
     } else {
         key = m_KeyMap.GetKey(sinf_entry->m_TrackId);
     }
@@ -879,52 +879,48 @@ AP4_MarlinIpmpEncryptingProcessor::Initialize(
                 attributes_atoms.SetDataSize(size);
                 if (AP4_SUCCEEDED(AP4_ParseHex(signed_attributes, attributes_atoms.UseData(), size))) {
                     // parse all the atoms encoded in the data and add them to the 'schi' container
-                    AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream(attributes_atoms.GetData(), 
-                                                                         attributes_atoms.GetDataSize());
+                    auto mbs = std::make_shared<AP4_MemoryByteStream>(attributes_atoms.GetData(), 
+                                                                      attributes_atoms.GetDataSize());
                     AP4_DefaultAtomFactory atom_factory;
                     do {
                         AP4_Atom* atom = NULL;
-                        result = atom_factory.CreateAtomFromStream(*mbs, atom);
+                        result = atom_factory.CreateAtomFromStream(mbs, atom);
                         if (AP4_SUCCEEDED(result) && atom) {
                             satr->AddChild(atom);
                         }
                     } while (AP4_SUCCEEDED(result));
-                    mbs->Release();
                 }
             }
 
             // compute the hmac
-            AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream();
-            satr->Write(*mbs);
+            AP4_MemoryByteStream mbs;
+            satr->Write(mbs);
             AP4_Hmac* digester = NULL;
             AP4_Hmac::Create(AP4_Hmac::SHA256, key->GetData(), key->GetDataSize(), digester);
-            digester->Update(mbs->GetData(), mbs->GetDataSize());
+            digester->Update(mbs.GetData(), mbs.GetDataSize());
             AP4_DataBuffer hmac_value;
             digester->Final(hmac_value);
             AP4_Atom* hmac = new AP4_UnknownAtom(AP4_ATOM_TYPE_HMAC, hmac_value.GetData(), hmac_value.GetDataSize());
             
             schi->AddChild(satr);
             schi->AddChild(hmac);
-            
-            mbs->Release();
         }
             
         sinf->AddChild(schi);
          
         // serialize the sinf atom to a buffer and set it as the ipmp data
-        AP4_MemoryByteStream* sinf_data = new AP4_MemoryByteStream((AP4_Size)sinf->GetSize());
-        sinf->Write(*sinf_data);
-        ipmp_descriptor->SetData(sinf_data->GetData(), sinf_data->GetDataSize());
-        sinf_data->Release();
+        AP4_MemoryByteStream sinf_data((AP4_Size)sinf->GetSize());
+        sinf->Write(sinf_data);
+        ipmp_descriptor->SetData(sinf_data.GetData(), sinf_data.GetDataSize());
         
         ipmp_update.AddDescriptor(ipmp_descriptor);
     }
     
     // add the sample with the descriptors and updates
-    AP4_MemoryByteStream* sample_data = new AP4_MemoryByteStream();
+    auto sample_data = std::make_shared<AP4_MemoryByteStream>();
     od_update.Write(*sample_data);
     ipmp_update.Write(*sample_data);
-    od_sample_table->AddSample(*sample_data, 0, sample_data->GetDataSize(), 0, 0, 0, 0, true);
+    od_sample_table->AddSample(sample_data, 0, sample_data->GetDataSize(), 0, 0, 0, 0, true);
     
     // create the OD track
     AP4_TrakAtom* od_track = new AP4_TrakAtom(od_sample_table,
@@ -939,7 +935,6 @@ AP4_MarlinIpmpEncryptingProcessor::Initialize(
     // media data for the OD track is not in the file stream, but in our
     // memory stream.
     m_ExternalTrackData.Add(new ExternalTrackData(od_track_id, sample_data));
-    sample_data->Release();
     
     // add a tref track reference atom
     AP4_ContainerAtom* tref = new AP4_ContainerAtom(AP4_ATOM_TYPE_TREF);

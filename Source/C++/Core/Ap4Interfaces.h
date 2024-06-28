@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_INTERFACES_H_
 #define _AP4_INTERFACES_H_
 
@@ -33,12 +35,6 @@
 |   includes
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
-
-/*----------------------------------------------------------------------
-|   macros
-+---------------------------------------------------------------------*/
-#define AP4_RELEASE(o) do { if (o) (o)->Release(); (o) = NULL; } while (0)
-#define AP4_ADD_REFERENCE(o) do { if (o) (o)->AddReference(); } while (0)
 
 #if !defined(AP4_CONFIG_NO_EXCEPTIONS)
 /*----------------------------------------------------------------------
@@ -54,17 +50,5 @@ public:
     AP4_Result m_Error;
 };
 #endif
-
-/*----------------------------------------------------------------------
-|   AP4_Referenceable
-+---------------------------------------------------------------------*/
-class AP4_Referenceable
-{
- public:
-    // methods
-    virtual ~AP4_Referenceable() {}
-    virtual void AddReference() = 0;
-    virtual void Release() = 0;
-};
 
 #endif // _AP4_INTERFACES_H_

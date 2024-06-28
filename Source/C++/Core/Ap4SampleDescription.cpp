@@ -156,7 +156,7 @@ AP4_SampleDescription::Clone(AP4_Result* result)
     }
     
     // serialize the atom to a buffer
-    AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream((AP4_UI32)atom->GetSize());
+    auto mbs = std::make_shared<AP4_MemoryByteStream>((AP4_UI32)atom->GetSize());
     atom->Write(*mbs);
     delete atom;
     atom = NULL;
@@ -166,11 +166,10 @@ AP4_SampleDescription::Clone(AP4_Result* result)
     AP4_AtomFactory* factory = new AP4_AtomFactory();
     factory->PushContext(AP4_ATOM_TYPE_STSD);
     AP4_Atom* atom_clone = NULL;
-    AP4_Result lresult = factory->CreateAtomFromStream(*mbs, atom_clone);
+    AP4_Result lresult = factory->CreateAtomFromStream(mbs, atom_clone);
     factory->PopContext();
     delete factory;
     if (result) *result = lresult;
-    mbs->Release();
     if (AP4_FAILED(lresult)) return NULL;
     
     // convert the atom clone to a sample description

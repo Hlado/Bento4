@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -159,10 +161,10 @@ AP4_TrakAtom::AP4_TrakAtom(AP4_SampleTable* sample_table,
 /*----------------------------------------------------------------------
 |   AP4_TrakAtom::AP4_TrakAtom
 +---------------------------------------------------------------------*/
-AP4_TrakAtom::AP4_TrakAtom(AP4_UI32         size,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
-    AP4_ContainerAtom(AP4_ATOM_TYPE_TRAK, size, false, stream, atom_factory)
+AP4_TrakAtom::AP4_TrakAtom(AP4_UI32                        size,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
+    AP4_ContainerAtom(AP4_ATOM_TYPE_TRAK, size, false, std::move(stream), atom_factory)
 {
     m_TkhdAtom = AP4_DYNAMIC_CAST(AP4_TkhdAtom, FindChild("tkhd"));
     m_MdhdAtom = AP4_DYNAMIC_CAST(AP4_MdhdAtom, FindChild("mdia/mdhd"));

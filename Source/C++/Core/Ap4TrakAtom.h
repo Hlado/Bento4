@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_TRAK_ATOM_H_
 #define _AP4_TRAK_ATOM_H_
 
@@ -34,6 +36,8 @@
 +---------------------------------------------------------------------*/
 #include "Ap4ContainerAtom.h"
 #include "Ap4Array.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -52,10 +56,10 @@ class AP4_TrakAtom : public AP4_ContainerAtom
     AP4_IMPLEMENT_DYNAMIC_CAST_D(AP4_TrakAtom, AP4_ContainerAtom)
 
     // class methods
-     static AP4_TrakAtom* Create(AP4_Size         size,
-                                 AP4_ByteStream&  stream,
-                                 AP4_AtomFactory& atom_factory) {
-        return new AP4_TrakAtom(size, stream, atom_factory);
+     static AP4_TrakAtom* Create(AP4_Size                       size,
+                                std::shared_ptr<AP4_ByteStream> stream,
+                                 AP4_AtomFactory&               atom_factory) {
+        return new AP4_TrakAtom(size, std::move(stream), atom_factory);
     }
 
     // methods
@@ -95,9 +99,9 @@ class AP4_TrakAtom : public AP4_ContainerAtom
     
  private:
     // methods
-    AP4_TrakAtom(AP4_UI32         size,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+    AP4_TrakAtom(AP4_UI32                        size,
+                 std::shared_ptr<AP4_ByteStream> stream,
+                 AP4_AtomFactory&                atom_factory);
 
     // members
     AP4_TkhdAtom* m_TkhdAtom;

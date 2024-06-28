@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -40,7 +42,7 @@
 |   AP4_Sample::AP4_Sample
 +---------------------------------------------------------------------*/
 AP4_Sample::AP4_Sample() :
-    m_DataStream(NULL),
+    m_DataStream(nullptr),
     m_Offset(0),
     m_Size(0),
     m_Duration(0),
@@ -54,14 +56,15 @@ AP4_Sample::AP4_Sample() :
 /*----------------------------------------------------------------------
 |   AP4_Sample::AP4_Sample
 +---------------------------------------------------------------------*/
-AP4_Sample::AP4_Sample(AP4_ByteStream& data_stream,
-                       AP4_Position    offset,
-                       AP4_Size        size,
-                       AP4_UI32        duration,
-                       AP4_Ordinal     description_index,
-                       AP4_UI64        dts,
-                       AP4_UI32        cts_delta,
-                       bool            is_sync) :
+AP4_Sample::AP4_Sample(std::shared_ptr<AP4_ByteStream> data_stream,
+                       AP4_Position                    offset,
+                       AP4_Size                        size,
+                       AP4_UI32                        duration,
+                       AP4_Ordinal                     description_index,
+                       AP4_UI64                        dts,
+                       AP4_UI32                        cts_delta,
+                       bool                            is_sync) :
+    m_DataStream(std::move(data_stream)),
     m_Offset(offset),
     m_Size(size),
     m_Duration(duration),
@@ -70,8 +73,7 @@ AP4_Sample::AP4_Sample(AP4_ByteStream& data_stream,
     m_CtsDelta(cts_delta),
     m_IsSync(is_sync)
 {
-    m_DataStream = &data_stream;
-    AP4_ADD_REFERENCE(m_DataStream);
+
 }
 
 /*----------------------------------------------------------------------
@@ -87,7 +89,7 @@ AP4_Sample::AP4_Sample(const AP4_Sample& other) :
     m_CtsDelta(other.m_CtsDelta),
     m_IsSync(other.m_IsSync)
 {
-    AP4_ADD_REFERENCE(m_DataStream);
+
 }
 
 /*----------------------------------------------------------------------
@@ -95,7 +97,7 @@ AP4_Sample::AP4_Sample(const AP4_Sample& other) :
 +---------------------------------------------------------------------*/
 AP4_Sample::~AP4_Sample()
 {
-    AP4_RELEASE(m_DataStream);
+
 }
 
 /*----------------------------------------------------------------------
@@ -104,8 +106,6 @@ AP4_Sample::~AP4_Sample()
 AP4_Sample&
 AP4_Sample::operator=(const AP4_Sample& other)
 {
-    AP4_ADD_REFERENCE(other.m_DataStream);
-    AP4_RELEASE(m_DataStream);
     m_DataStream = other.m_DataStream;
 
     m_Offset           = other.m_Offset;
@@ -165,10 +165,9 @@ AP4_Sample::ReadData(AP4_DataBuffer& data, AP4_Size size, AP4_Size offset)
 /*----------------------------------------------------------------------
 |   AP4_Sample::GetDataStream
 +---------------------------------------------------------------------*/
-AP4_ByteStream*
+std::shared_ptr<AP4_ByteStream>
 AP4_Sample::GetDataStream()
 {
-    AP4_ADD_REFERENCE(m_DataStream);
     return m_DataStream;
 }
 
@@ -176,11 +175,9 @@ AP4_Sample::GetDataStream()
 |   AP4_Sample::SetDataStream
 +---------------------------------------------------------------------*/
 void
-AP4_Sample::SetDataStream(AP4_ByteStream& stream)
+AP4_Sample::SetDataStream(std::shared_ptr<AP4_ByteStream> stream)
 {
-    AP4_RELEASE(m_DataStream);
-    m_DataStream = &stream;
-    AP4_ADD_REFERENCE(m_DataStream);
+    m_DataStream = stream;
 }
 
 /*----------------------------------------------------------------------
@@ -189,8 +186,7 @@ AP4_Sample::SetDataStream(AP4_ByteStream& stream)
 void
 AP4_Sample::Detach()
 {
-    AP4_RELEASE(m_DataStream);
-    m_DataStream = NULL;
+    m_DataStream.reset();
 }
 
 /*----------------------------------------------------------------------
@@ -199,8 +195,8 @@ AP4_Sample::Detach()
 void 
 AP4_Sample::Reset()
 {
-    AP4_RELEASE(m_DataStream);
-    
+    m_DataStream.reset();
+
     m_Offset           = 0;
     m_Size             = 0;
     m_Duration         = 0;

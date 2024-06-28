@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_SAMPLE_ENTRY_H_
 #define _AP4_SAMPLE_ENTRY_H_
 
@@ -38,6 +40,8 @@
 #include "Ap4EsdsAtom.h"
 #include "Ap4AtomFactory.h"
 #include "Ap4ContainerAtom.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -56,10 +60,10 @@ class AP4_SampleEntry : public AP4_ContainerAtom
 
     // methods
     AP4_SampleEntry(AP4_Atom::Type format, const AP4_AtomParent* details = NULL);
-    AP4_SampleEntry(AP4_Atom::Type   format, 
-                    AP4_Size         size,
-                    AP4_ByteStream&  stream,
-                    AP4_AtomFactory& atom_factory);
+    AP4_SampleEntry(AP4_Atom::Type                  format, 
+                    AP4_Size                        size,
+                    std::shared_ptr<AP4_ByteStream> stream,
+                    AP4_AtomFactory&                atom_factory);
     virtual ~AP4_SampleEntry() {}
     
     AP4_UI16           GetDataReferenceIndex() { return m_DataReferenceIndex; }
@@ -78,7 +82,7 @@ class AP4_SampleEntry : public AP4_ContainerAtom
     AP4_SampleEntry(AP4_Atom::Type format, AP4_Size size);
 
     // methods
-    virtual void       Read(AP4_ByteStream& stream, AP4_AtomFactory& atom_factory);
+    virtual void       Read(std::shared_ptr<AP4_ByteStream> stream, AP4_AtomFactory& atom_factory);
     virtual AP4_Size   GetFieldsSize();
     virtual AP4_Result ReadFields(AP4_ByteStream& stream);
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);
@@ -129,10 +133,10 @@ public:
                          AP4_UI32         sample_rate,
                          AP4_UI16         sample_size,
                          AP4_UI16         channel_count);
-    AP4_AudioSampleEntry(AP4_Atom::Type   format,
-                         AP4_Size         size,
-                         AP4_ByteStream&  stream,
-                         AP4_AtomFactory& atom_factory);
+    AP4_AudioSampleEntry(AP4_Atom::Type                  format,
+                         AP4_Size                        size,
+                         std::shared_ptr<AP4_ByteStream> stream,
+                         AP4_AtomFactory&                atom_factory);
 
     // accessors
     AP4_UI32 GetSampleRate();
@@ -188,10 +192,10 @@ public:
                           AP4_UI16          depth,
                           const char*           compressor_name,
                           const AP4_AtomParent* details = NULL);
-    AP4_VisualSampleEntry(AP4_Atom::Type   format,
-                          AP4_Size         size,
-                          AP4_ByteStream&  stream,
-                          AP4_AtomFactory& atom_factory);
+    AP4_VisualSampleEntry(AP4_Atom::Type                  format,
+                          AP4_Size                        size,
+                          std::shared_ptr<AP4_ByteStream> stream,
+                          AP4_AtomFactory&                atom_factory);
 
     // accessors
     AP4_UI16    GetWidth()          { return m_Width;  }
@@ -233,12 +237,12 @@ class AP4_MpegSystemSampleEntry : public AP4_SampleEntry
 {
 public:
     // constructors
-    AP4_MpegSystemSampleEntry(AP4_UI32          type,
-                              AP4_EsDescriptor* descriptor);
-    AP4_MpegSystemSampleEntry(AP4_UI32         type,
-                              AP4_Size         size,
-                              AP4_ByteStream&  stream,
-                              AP4_AtomFactory& atom_factory);
+    AP4_MpegSystemSampleEntry(AP4_UI32                        type,
+                              AP4_EsDescriptor*               descriptor);
+    AP4_MpegSystemSampleEntry(AP4_UI32                        type,
+                              AP4_Size                        size,
+                              std::shared_ptr<AP4_ByteStream> stream,
+                              AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_SampleDescription* ToSampleDescription();
@@ -256,10 +260,10 @@ public:
                              AP4_UI16          sample_size,
                              AP4_UI16          channel_count,
                              AP4_EsDescriptor* descriptor);
-    AP4_MpegAudioSampleEntry(AP4_UI32         type,
-                             AP4_Size         size,
-                             AP4_ByteStream&  stream,
-                             AP4_AtomFactory& atom_factory);
+    AP4_MpegAudioSampleEntry(AP4_UI32                        type,
+                             AP4_Size                        size,
+                             std::shared_ptr<AP4_ByteStream> stream,
+                             AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_SampleDescription* ToSampleDescription();
@@ -276,10 +280,10 @@ public:
                        AP4_UI16              sample_size,
                        AP4_UI16              channel_count,
                        const AP4_AtomParent* details);
-    AP4_Ac3SampleEntry(AP4_UI32         type,
-                       AP4_Size         size,
-                       AP4_ByteStream&  stream,
-                       AP4_AtomFactory& atom_factory);
+    AP4_Ac3SampleEntry(AP4_UI32                        type,
+                       AP4_Size                        size,
+                       std::shared_ptr<AP4_ByteStream> stream,
+                       AP4_AtomFactory&                atom_factory);
     
     // inherited from AP4_SampleEntry
     virtual AP4_SampleDescription* ToSampleDescription();
@@ -296,10 +300,10 @@ public:
                         AP4_UI16              sample_size,
                         AP4_UI16              channel_count,
                         const AP4_AtomParent* details);
-    AP4_Eac3SampleEntry(AP4_UI32         type,
-                        AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_Eac3SampleEntry(AP4_UI32                        type,
+                        AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
                         
     // inherited from AP4_SampleEntry
     virtual AP4_SampleDescription* ToSampleDescription();
@@ -317,10 +321,10 @@ public:
                        AP4_UI16              sample_size,
                        AP4_UI16              channel_count,
                        const AP4_AtomParent* details);
-    AP4_Ac4SampleEntry(AP4_UI32         type,
-                       AP4_Size         size,
-                       AP4_ByteStream&  stream,
-                       AP4_AtomFactory& atom_factory);
+    AP4_Ac4SampleEntry(AP4_UI32                        type,
+                       AP4_Size                        size,
+                       std::shared_ptr<AP4_ByteStream> stream,
+                       AP4_AtomFactory&                atom_factory);
                         
     // inherited from AP4_SampleEntry
     virtual AP4_SampleDescription* ToSampleDescription();
@@ -339,10 +343,10 @@ public:
                              AP4_UI16          depth,
                              const char*       compressor_name,
                              AP4_EsDescriptor* descriptor);
-    AP4_MpegVideoSampleEntry(AP4_UI32         type,
-                             AP4_Size         size,
-                             AP4_ByteStream&  stream,
-                             AP4_AtomFactory& atom_factory);
+    AP4_MpegVideoSampleEntry(AP4_UI32                        type,
+                             AP4_Size                        size,
+                             std::shared_ptr<AP4_ByteStream> stream,
+                             AP4_AtomFactory&                atom_factory);
 
     // methods
     AP4_SampleDescription* ToSampleDescription();
@@ -355,9 +359,9 @@ class AP4_Mp4sSampleEntry : public AP4_MpegSystemSampleEntry
 {
  public:
     // constructors
-    AP4_Mp4sSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_Mp4sSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
     AP4_Mp4sSampleEntry(AP4_EsDescriptor* descriptor);
 
     // methods
@@ -371,9 +375,9 @@ class AP4_Mp4aSampleEntry : public AP4_MpegAudioSampleEntry
 {
  public:
     // constructors
-    AP4_Mp4aSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_Mp4aSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
     AP4_Mp4aSampleEntry(AP4_UI32          sample_rate, 
                         AP4_UI16          sample_size,
                         AP4_UI16          channel_count,
@@ -387,9 +391,9 @@ class AP4_Mp4vSampleEntry : public AP4_MpegVideoSampleEntry
 {
  public:
     // constructors
-    AP4_Mp4vSampleEntry(AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_Mp4vSampleEntry(AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
                         
     AP4_Mp4vSampleEntry(AP4_UI16          width,
                         AP4_UI16          height,
@@ -405,10 +409,10 @@ class AP4_AvcSampleEntry : public AP4_VisualSampleEntry
 {
 public:
     // constructors
-    AP4_AvcSampleEntry(AP4_UI32         format, // avc1, avc2, avc3, avc4
-                       AP4_Size         size,
-                       AP4_ByteStream&  stream,
-                       AP4_AtomFactory& atom_factory);
+    AP4_AvcSampleEntry(AP4_UI32                        format, // avc1, avc2, avc3, avc4
+                       AP4_Size                        size,
+                       std::shared_ptr<AP4_ByteStream> stream,
+                       AP4_AtomFactory&                atom_factory);
     
     AP4_AvcSampleEntry(AP4_UI32            format, // avc1, avc2, avc3, avc4
                        AP4_UI16            width,
@@ -428,10 +432,10 @@ class AP4_HevcSampleEntry : public AP4_VisualSampleEntry
 {
 public:
     // constructors
-    AP4_HevcSampleEntry(AP4_UI32         format, // hvc1, hev1
-                        AP4_Size         size,
-                        AP4_ByteStream&  stream,
-                        AP4_AtomFactory& atom_factory);
+    AP4_HevcSampleEntry(AP4_UI32                        format, // hvc1, hev1
+                        AP4_Size                        size,
+                        std::shared_ptr<AP4_ByteStream> stream,
+                        AP4_AtomFactory&                atom_factory);
     
     AP4_HevcSampleEntry(AP4_UI32            format, // hvc1, hev1
                         AP4_UI16            width,
@@ -451,10 +455,10 @@ class AP4_Av1SampleEntry : public AP4_VisualSampleEntry
 {
 public:
     // constructors
-    AP4_Av1SampleEntry(AP4_UI32         format, // av01
-                       AP4_Size         size,
-                       AP4_ByteStream&  stream,
-                       AP4_AtomFactory& atom_factory);
+    AP4_Av1SampleEntry(AP4_UI32                        format, // av01
+                       AP4_Size                        size,
+                       std::shared_ptr<AP4_ByteStream> stream,
+                       AP4_AtomFactory&                atom_factory);
     
     AP4_Av1SampleEntry(AP4_UI32              format, // av01
                        AP4_UI16              width,
@@ -478,9 +482,9 @@ public:
                            AP4_UI16 highest_compatible_version,
                            AP4_UI32 max_packet_size,
                            AP4_UI32 timescale);
-    AP4_RtpHintSampleEntry(AP4_Size         size,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory);
+    AP4_RtpHintSampleEntry(AP4_Size                        size,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory);
     
 protected:
     // methods
@@ -506,10 +510,10 @@ public:
                             const char* namespce,
                             const char* schema_location,
                             const char* image_mime_type);
-    AP4_SubtitleSampleEntry(AP4_Atom::Type   format,
-                            AP4_Size         size,
-                            AP4_ByteStream&  stream,
-                            AP4_AtomFactory& atom_factory);
+    AP4_SubtitleSampleEntry(AP4_Atom::Type                  format,
+                            AP4_Size                        size,
+                            std::shared_ptr<AP4_ByteStream> stream,
+                            AP4_AtomFactory&                atom_factory);
 
     // accessors
 

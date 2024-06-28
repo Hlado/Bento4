@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -95,7 +97,7 @@ AP4_OmaDcfAtomDecrypter::DecryptAtoms(AP4_AtomParent&                  atoms,
         }
                 
         // create the byte stream
-        AP4_ByteStream* cipher_stream = NULL;
+        std::shared_ptr<AP4_ByteStream> cipher_stream;
         AP4_Result result = CreateDecryptingStream(*odrm, 
                                                    key->GetData(), 
                                                    key->GetDataSize(), 
@@ -103,8 +105,7 @@ AP4_OmaDcfAtomDecrypter::DecryptAtoms(AP4_AtomParent&                  atoms,
                                                    cipher_stream);
         if (AP4_SUCCEEDED(result)) {
             // replace the odda atom's payload with the decrypted stream
-            odda->SetEncryptedPayload(*cipher_stream, ohdr->GetPlaintextLength());
-            cipher_stream->Release();
+            odda->SetEncryptedPayload(std::move(cipher_stream), ohdr->GetPlaintextLength());
 
             // the atom will now be in the clear
             ohdr->SetEncryptionMethod(AP4_OMA_DCF_ENCRYPTION_METHOD_NULL);
@@ -120,14 +121,14 @@ AP4_OmaDcfAtomDecrypter::DecryptAtoms(AP4_AtomParent&                  atoms,
 +---------------------------------------------------------------------*/
 AP4_Result 
 AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
-    AP4_ContainerAtom&      odrm,
-    const AP4_UI08*         key,
-    AP4_Size                key_size,
-    AP4_BlockCipherFactory* block_cipher_factory,
-    AP4_ByteStream*&        stream)
+    AP4_ContainerAtom&               odrm,
+    const AP4_UI08*                  key,
+    AP4_Size                         key_size,
+    AP4_BlockCipherFactory*          block_cipher_factory,
+    std::shared_ptr<AP4_ByteStream>& stream)
 {
     // default return values
-    stream = NULL;
+    stream = nullptr;
     
     AP4_OdheAtom* odhe = AP4_DYNAMIC_CAST(AP4_OdheAtom, odrm.GetChild(AP4_ATOM_TYPE_ODHE));
     if (odhe == NULL) return AP4_ERROR_INVALID_FORMAT;
@@ -143,8 +144,7 @@ AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
     
     // shortcut for non-encrypted files
     if (ohdr->GetEncryptionMethod() == AP4_OMA_DCF_ENCRYPTION_METHOD_NULL) {
-        stream = &odda->GetEncryptedPayload();
-        stream->AddReference();
+        stream = odda->GetEncryptedPayload();
         return AP4_SUCCESS;
     }
     
@@ -250,13 +250,13 @@ AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
 +---------------------------------------------------------------------*/
 AP4_Result 
 AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
-    AP4_OmaDcfCipherMode    mode,
-    AP4_ByteStream&         encrypted_stream,
-    AP4_LargeSize           cleartext_size,
-    const AP4_UI08*         key,
-    AP4_Size                key_size,
-    AP4_BlockCipherFactory* block_cipher_factory,
-    AP4_ByteStream*&        stream) 
+    AP4_OmaDcfCipherMode             mode,
+    std::shared_ptr<AP4_ByteStream>  encrypted_stream,
+    AP4_LargeSize                    cleartext_size,
+    const AP4_UI08*                  key,
+    AP4_Size                         key_size,
+    AP4_BlockCipherFactory*          block_cipher_factory,
+    std::shared_ptr<AP4_ByteStream>& stream)
 {
     // default return value
     stream = NULL;
@@ -268,7 +268,7 @@ AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
     
     // get the encrypted size (includes IV and padding)
     AP4_LargeSize encrypted_size = 0;
-    AP4_Result result = encrypted_stream.GetSize(encrypted_size);
+    AP4_Result result = encrypted_stream->GetSize(encrypted_size);
     if (AP4_FAILED(result)) return result;
 
     // check that the encrypted size is consistent with the cipher mode
@@ -292,17 +292,17 @@ AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
 
     // read the IV
     AP4_UI08 iv[16];
-    result = encrypted_stream.Seek(0);
+    result = encrypted_stream->Seek(0);
     if (AP4_FAILED(result)) return result;
-    result = encrypted_stream.Read(iv, 16);
+    result = encrypted_stream->Read(iv, 16);
     if (AP4_FAILED(result)) return result;
 
     // create a sub stream with just the encrypted payload without the IV
-    AP4_ByteStream* sub_stream = new AP4_SubStream(encrypted_stream, 16, encrypted_size-16);
+    auto sub_stream = std::make_shared<AP4_SubStream>(encrypted_stream, 16, encrypted_size-16);
     
     // create the decrypting cipher
     result = AP4_DecryptingStream::Create(cipher_mode,
-                                          *sub_stream,
+                                          sub_stream,
                                           cleartext_size,
                                           iv,
                                           16,
@@ -310,9 +310,6 @@ AP4_OmaDcfAtomDecrypter::CreateDecryptingStream(
                                           key_size,
                                           block_cipher_factory,
                                           stream);
-
-    // we don't keep our own reference to the sub stream
-    sub_stream->Release();
     
     return result;
 }

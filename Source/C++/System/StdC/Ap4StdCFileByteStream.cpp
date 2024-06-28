@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -44,6 +46,8 @@
 #include <fcntl.h>
 #endif
 #include "Ap4FileByteStream.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   compatibility wrappers
@@ -168,10 +172,10 @@ class AP4_StdcFileByteStream: public AP4_ByteStream
 {
 public:
     // class methods
-    static AP4_Result Create(AP4_FileByteStream*      delegator,
-                             const char*              name,
-                             AP4_FileByteStream::Mode mode,
-                             AP4_ByteStream*&         stream);
+    static AP4_Result Create(AP4_FileByteStream*              delegator,
+                             const char*                      name,
+                             AP4_FileByteStream::Mode         mode,
+                             std::shared_ptr<AP4_ByteStream>& stream);
                       
     // methods
     AP4_StdcFileByteStream(AP4_FileByteStream* delegator,
@@ -208,11 +212,11 @@ private:
 /*----------------------------------------------------------------------
 |   AP4_StdcFileByteStream::Create
 +---------------------------------------------------------------------*/
-AP4_Result
-AP4_StdcFileByteStream::Create(AP4_FileByteStream*      delegator,
-                               const char*              name, 
-                               AP4_FileByteStream::Mode mode, 
-                               AP4_ByteStream*&         stream)
+AP4_Result   
+AP4_StdcFileByteStream::Create(AP4_FileByteStream*              delegator,
+                               const char*                      name, 
+                               AP4_FileByteStream::Mode         mode, 
+                               std::shared_ptr<AP4_ByteStream>& stream)
 {
     // default value
     stream = NULL;
@@ -276,7 +280,7 @@ AP4_StdcFileByteStream::Create(AP4_FileByteStream*      delegator,
         
     }
 
-    stream = new AP4_StdcFileByteStream(delegator, file, size);
+    stream = std::make_shared<AP4_StdcFileByteStream>(delegator, file, size);
     return AP4_SUCCESS;
 }
 
@@ -432,9 +436,9 @@ AP4_StdcFileByteStream::Flush()
 |   AP4_FileByteStream::Create
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_FileByteStream::Create(const char*              name, 
-                           AP4_FileByteStream::Mode mode,
-                           AP4_ByteStream*&         stream)
+AP4_FileByteStream::Create(const char*                      name, 
+                           AP4_FileByteStream::Mode         mode,
+                           std::shared_ptr<AP4_ByteStream>& stream)
 {
     return AP4_StdcFileByteStream::Create(NULL, name, mode, stream);
 }
@@ -446,11 +450,8 @@ AP4_FileByteStream::Create(const char*              name,
 AP4_FileByteStream::AP4_FileByteStream(const char*              name, 
                                        AP4_FileByteStream::Mode mode)
 {
-    AP4_ByteStream* stream = NULL;
-    AP4_Result result = AP4_StdcFileByteStream::Create(this, name, mode, stream);
+    AP4_Result result = AP4_StdcFileByteStream::Create(this, name, mode,m_Delegate);
     if (AP4_FAILED(result)) throw AP4_Exception(result);
-    
-    m_Delegate = stream;
 }
 #endif
 

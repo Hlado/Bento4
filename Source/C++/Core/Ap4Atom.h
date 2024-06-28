@@ -25,6 +25,9 @@
 |    02111-1307, USA.
 |
  ****************************************************************/
+
+//Modified by github user @Hlado 06/27/2024
+
 /**
 * @file 
 * @brief Atoms
@@ -138,7 +141,7 @@ protected:
 +---------------------------------------------------------------------*/
 class AP4_PrintInspector : public AP4_AtomInspector {
 public:
-    AP4_PrintInspector(AP4_ByteStream& stream, AP4_Cardinal indent=0);
+    AP4_PrintInspector(std::shared_ptr<AP4_ByteStream> stream, AP4_Cardinal indent=0);
     ~AP4_PrintInspector();
 
     // methods
@@ -186,7 +189,7 @@ private:
     void     PrintSuffix();
 
     // members
-    AP4_ByteStream*    m_Stream;
+    std::shared_ptr<AP4_ByteStream> m_Stream;
     AP4_Array<Context> m_Contexts;
 };
 
@@ -195,7 +198,7 @@ private:
 +---------------------------------------------------------------------*/
 class AP4_JsonInspector : public AP4_AtomInspector {
 public:
-    AP4_JsonInspector(AP4_ByteStream& stream);
+    AP4_JsonInspector(std::shared_ptr<AP4_ByteStream> stream);
     ~AP4_JsonInspector();
 
     // methods
@@ -244,9 +247,9 @@ private:
     void              PrintFieldName(const char* name);
     
     // members
-    AP4_ByteStream*    m_Stream;
-    AP4_Array<Context> m_Contexts;
-    char               m_Prefix[256];
+    std::shared_ptr<AP4_ByteStream> m_Stream;
+    AP4_Array<Context>              m_Contexts;
+    char                            m_Prefix[256];
 };
 
 /*----------------------------------------------------------------------
@@ -401,7 +404,7 @@ public:
     // constructor and destructor
     AP4_UnknownAtom(AP4_Atom::Type   type, 
                     AP4_UI64         size, 
-                    AP4_ByteStream&  stream);
+                    std::shared_ptr<AP4_ByteStream> stream);
     AP4_UnknownAtom(AP4_Atom::Type type, const AP4_UI08* payload, AP4_Size payload_size);
     AP4_UnknownAtom(const AP4_UnknownAtom& other);
     ~AP4_UnknownAtom();
@@ -412,7 +415,7 @@ public:
 
 private:
     // members
-    AP4_ByteStream* m_SourceStream;
+    std::shared_ptr<AP4_ByteStream> m_SourceStream;
     AP4_Position    m_SourcePosition;
     AP4_DataBuffer  m_Payload;
 };

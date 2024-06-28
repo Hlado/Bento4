@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_SAMPLE_H_
 #define _AP4_SAMPLE_H_
 
@@ -33,6 +35,8 @@
 |   includes
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -43,7 +47,7 @@ class AP4_DataBuffer;
 /*----------------------------------------------------------------------
 |   AP4_Sample DO NOT DERIVE FROM THIS CLASS
 +---------------------------------------------------------------------*/
-class AP4_Sample 
+class AP4_Sample final
 {
 public:
     /**
@@ -72,14 +76,14 @@ public:
      * @param sync_flag Boolean flag indicating whether this is a sync sample
      * or not
      */
-    AP4_Sample(AP4_ByteStream& data_stream,
-               AP4_Position    offset,
-               AP4_Size        size,
-               AP4_UI32        duration,
-               AP4_Ordinal     description_index,
-               AP4_UI64        dts,
-               AP4_UI32        cts_delta,
-               bool            sync_flag);
+    AP4_Sample(std::shared_ptr<AP4_ByteStream> data_stream,
+               AP4_Position                    offset,
+               AP4_Size                        size,
+               AP4_UI32                        duration,
+               AP4_Ordinal                     description_index,
+               AP4_UI64                        dts,
+               AP4_UI32                        cts_delta,
+               bool                            sync_flag);
                
     ~AP4_Sample(); // not virtual on purpose: do not derive from it
 
@@ -94,14 +98,14 @@ public:
     void            Detach();
     
     // sample properties accessors
-    AP4_ByteStream* GetDataStream();
-    void            SetDataStream(AP4_ByteStream& stream);
-    AP4_Position    GetOffset() const { return m_Offset; }
-    void            SetOffset(AP4_Position offset) { m_Offset = offset; }
-    AP4_Size        GetSize() { return m_Size; }
-    void            SetSize(AP4_Size size) { m_Size = size; }
-    AP4_Ordinal     GetDescriptionIndex() const { return m_DescriptionIndex; }
-    void            SetDescriptionIndex(AP4_Ordinal index) { m_DescriptionIndex = index; }
+    std::shared_ptr<AP4_ByteStream> GetDataStream();
+    void                            SetDataStream(std::shared_ptr<AP4_ByteStream> stream);
+    AP4_Position                    GetOffset() const { return m_Offset; }
+    void                            SetOffset(AP4_Position offset) { m_Offset = offset; }
+    AP4_Size                        GetSize() { return m_Size; }
+    void                            SetSize(AP4_Size size) { m_Size = size; }
+    AP4_Ordinal                     GetDescriptionIndex() const { return m_DescriptionIndex; }
+    void                            SetDescriptionIndex(AP4_Ordinal index) { m_DescriptionIndex = index; }
     
     /**
      * Get the DTS (Decoding Time Stamp) of the sample in the timescale of the media
@@ -161,14 +165,14 @@ public:
     void            Reset();
 
 private:
-    AP4_ByteStream* m_DataStream;
-    AP4_Position    m_Offset;
-    AP4_Size        m_Size;
-    AP4_UI32        m_Duration;
-    AP4_Ordinal     m_DescriptionIndex;
-    AP4_UI64        m_Dts;
-    AP4_SI32        m_CtsDelta; // make this a signed value, because quicktime can use negative offsets
-    bool            m_IsSync;
+    std::shared_ptr<AP4_ByteStream> m_DataStream;
+    AP4_Position                    m_Offset;
+    AP4_Size                        m_Size;
+    AP4_UI32                        m_Duration;
+    AP4_Ordinal                     m_DescriptionIndex;
+    AP4_UI64                        m_Dts;
+    AP4_SI32                        m_CtsDelta; // make this a signed value, because quicktime can use negative offsets
+    bool                            m_IsSync;
 };
 
 #endif // _AP4_SAMPLE_H_

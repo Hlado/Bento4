@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_COMMAND_FACTORY_H_
 #define _AP4_COMMAND_FACTORY_H_
 
@@ -34,6 +36,8 @@
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
 #include "Ap4Command.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -47,8 +51,8 @@ class AP4_CommandFactory
 {
  public:
     // class methods
-    static AP4_Result CreateCommandFromStream(AP4_ByteStream& stream,
-                                              AP4_Command*&   command);
+    static AP4_Result CreateCommandFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                              AP4_Command*&                   command);
 };
 
 #endif // _AP4_COMMAND_FACTORY_H_

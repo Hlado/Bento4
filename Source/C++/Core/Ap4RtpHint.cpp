@@ -25,6 +25,9 @@
 |    02111-1307, USA.
 |
 ****************************************************************/
+
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -33,17 +36,7 @@
 #include "Ap4Atom.h"
 #include "Ap4Utils.h"
 
-/*----------------------------------------------------------------------
-|   AP4_RtpSampleData::~AP4_RtpSampleData
-+---------------------------------------------------------------------*/
-AP4_RtpSampleData::~AP4_RtpSampleData()
-{
-    AP4_List<AP4_RtpPacket>::Item* it = m_Packets.FirstItem();
-    while (it != NULL) {
-        it->GetData()->Release();
-        it = it->GetNext();
-    }
-}
+#include <ranges>
 
 /*----------------------------------------------------------------------
 |   AP4_RtpSampleData::AP4_RtpSampleData
@@ -62,8 +55,7 @@ AP4_RtpSampleData::AP4_RtpSampleData(AP4_ByteStream& stream, AP4_UI32 size)
 
     // packets
     for (AP4_UI16 i=0; i<packet_count; i++) {
-        AP4_RtpPacket* packet = new AP4_RtpPacket(stream);
-        m_Packets.Add(packet);
+        m_Packets.push_back(std::make_shared<AP4_RtpPacket>(stream));
     }
 
     // extra data
@@ -85,10 +77,8 @@ AP4_RtpSampleData::GetSize()
     AP4_Size result = 4;
 
     // packets
-    AP4_List<AP4_RtpPacket>::Item* it = m_Packets.FirstItem();
-    while (it != NULL) {
-        result = it->GetData()->GetSize();
-        it = it->GetNext();
+    for(auto const &pck : m_Packets){
+        result += pck->GetSize();
     }
 
     // extra data
@@ -100,28 +90,26 @@ AP4_RtpSampleData::GetSize()
 /*----------------------------------------------------------------------
 |   AP4_RtpSampleData::ToByteStream
 +---------------------------------------------------------------------*/
-AP4_ByteStream*
+std::shared_ptr<AP4_ByteStream>
 AP4_RtpSampleData::ToByteStream()
 {
     // refresh the size
     AP4_Size size = GetSize();
 
     // create a memory stream
-    AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(size);
+    auto stream = std::make_shared<AP4_MemoryByteStream>(size);
 
     // write in it
-    AP4_Result result = stream->WriteUI16(static_cast<AP4_UI16>(m_Packets.ItemCount()));
+    AP4_Result result = stream->WriteUI16(static_cast<AP4_UI16>(m_Packets.size()));
     if (AP4_FAILED(result)) goto bail;
 
     result = stream->WriteUI16(0); // reserved
     if (AP4_FAILED(result)) goto bail;
 
     {
-        AP4_List<AP4_RtpPacket>::Item* it = m_Packets.FirstItem();
-        while (it != NULL) {
-            result = it->GetData()->Write(*stream);
-            if (AP4_FAILED(result)) goto bail;
-            it = it->GetNext();
+        for(auto &pck : m_Packets) {
+            result = pck->Write(*stream);
+            if(AP4_FAILED(result)) goto bail;
         }
     }
 
@@ -132,8 +120,7 @@ AP4_RtpSampleData::ToByteStream()
     return stream;
 
 bail:
-    stream->Release();
-    return NULL;
+    return nullptr;
 }
 
 
@@ -141,10 +128,10 @@ bail:
 |   AP4_RtpSampleData::AddPacket
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_RtpSampleData::AddPacket(AP4_RtpPacket* packet)
+AP4_RtpSampleData::AddPacket(std::shared_ptr<AP4_RtpPacket> packet)
 {
-    packet->AddReference();
-    return m_Packets.Add(packet);
+    m_Packets.push_back(std::move(packet));
+    return AP4_SUCCESS;
 }
 
 /*----------------------------------------------------------------------
@@ -159,7 +146,6 @@ AP4_RtpPacket::AP4_RtpPacket(int      relative_time,
                              int      time_stamp_offset /* = 0 */,
                              bool     bframe_flag /* = false */,
                              bool     repeat_flag /* = false */) :
-    m_ReferenceCount(1),
     m_RelativeTime(relative_time),
     m_PBit(p_bit),
     m_XBit(x_bit),
@@ -175,7 +161,6 @@ AP4_RtpPacket::AP4_RtpPacket(int      relative_time,
 |   AP4_RtpPacket::AP4_RtpPacket
 +---------------------------------------------------------------------*/
 AP4_RtpPacket::AP4_RtpPacket(AP4_ByteStream& stream) :
-    m_ReferenceCount(1),
     m_TimeStampOffset(0)
 {
     AP4_UI08 octet;
@@ -249,41 +234,9 @@ AP4_RtpPacket::AP4_RtpPacket(AP4_ByteStream& stream) :
 
     // constructors
     for (AP4_UI16 i=0; i<constructor_count; i++) {
-        AP4_RtpConstructor* constructor = NULL;
+        std::shared_ptr<AP4_RtpConstructor> constructor{nullptr};
         AP4_RtpConstructorFactory::CreateConstructorFromStream(stream, constructor);
-        m_Constructors.Add(constructor);
-    }
-}
-
-/*----------------------------------------------------------------------
-|   AP4_RtpPacket::AP4_RtpPacket
-+---------------------------------------------------------------------*/
-AP4_RtpPacket::~AP4_RtpPacket()
-{
-    AP4_List<AP4_RtpConstructor>::Item* it = m_Constructors.FirstItem();
-    while (it != NULL) {
-        it->GetData()->Release();
-        it = it->GetNext();
-    }
-}
-
-/*----------------------------------------------------------------------
-|   AP4_RtpPacket::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_RtpPacket::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_RtpPacket::Release
-+---------------------------------------------------------------------*/
-void
-AP4_RtpPacket::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
+        m_Constructors.push_back(constructor);
     }
 }
 
@@ -294,7 +247,7 @@ AP4_Size
 AP4_RtpPacket::GetSize()
 {
     AP4_Size result = 12 + ((m_TimeStampOffset != 0)?16:0);
-    result += m_Constructors.ItemCount() * AP4_RTP_CONSTRUCTOR_SIZE;
+    result += static_cast<AP4_Size>(m_Constructors.size()) * AP4_RTP_CONSTRUCTOR_SIZE;
     return result;
 }
 
@@ -332,7 +285,7 @@ AP4_RtpPacket::Write(AP4_ByteStream& stream)
 
 
     // constructor count
-    result = stream.WriteUI16(static_cast<AP4_UI16>(m_Constructors.ItemCount()));
+    result = stream.WriteUI16(static_cast<AP4_UI16>(m_Constructors.size()));
 
     // write extra data
     if (extra_flag) {
@@ -350,12 +303,11 @@ AP4_RtpPacket::Write(AP4_ByteStream& stream)
     }
 
     // constructors
-    AP4_List<AP4_RtpConstructor>::Item* it = m_Constructors.FirstItem();
-    while (it != NULL) {
-        result = it->GetData()->Write(stream);
-        if (AP4_FAILED(result)) return result;
-        it = it->GetNext();
+    for(auto &ctor : m_Constructors) {
+        result = ctor->Write(stream);
+        if(AP4_FAILED(result)) return result;
     }
+
     return result;
 }
 
@@ -363,10 +315,10 @@ AP4_RtpPacket::Write(AP4_ByteStream& stream)
 |   AP4_RtpPacket::AddConstructor
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_RtpPacket::AddConstructor(AP4_RtpConstructor* constructor)
+AP4_RtpPacket::AddConstructor(std::shared_ptr<AP4_RtpConstructor> constructor)
 {
-    constructor->AddReference();
-    return m_Constructors.Add(constructor);
+    m_Constructors.push_back(std::move(constructor));
+    return AP4_SUCCESS;
 }
 
 /*----------------------------------------------------------------------
@@ -379,36 +331,13 @@ AP4_RtpPacket::GetConstructedDataSize()
     AP4_Size size = 12;
 
     // constructed data from constructors
-    AP4_List<AP4_RtpConstructor>::Item* constructors_it
-        = m_Constructors.FirstItem();
-    while (constructors_it != NULL) {
-        size += constructors_it->GetData()->GetConstructedDataSize();
-        constructors_it = constructors_it->GetNext();
+    for(auto &ctor : m_Constructors) {
+        size += ctor->GetConstructedDataSize();
     }
 
     return size;
 }
 
-
-/*----------------------------------------------------------------------
-|   AP4_RtpConstructor::AddReference
-+---------------------------------------------------------------------*/
-void
-AP4_RtpConstructor::AddReference()
-{
-    m_ReferenceCount++;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_RtpConstructor::Release
-+---------------------------------------------------------------------*/
-void
-AP4_RtpConstructor::Release()
-{
-    if (--m_ReferenceCount == 0) {
-        delete this;
-    }
-}
 /*----------------------------------------------------------------------
 |   AP4_RtpConstructor::Write
 +---------------------------------------------------------------------*/
@@ -608,7 +537,7 @@ AP4_SampleDescRtpConstructor::DoWrite(AP4_ByteStream& stream)
 +---------------------------------------------------------------------*/
 AP4_Result
 AP4_RtpConstructorFactory::CreateConstructorFromStream(AP4_ByteStream& stream,
-                                                       AP4_RtpConstructor*& constructor)
+                                                       std::shared_ptr<AP4_RtpConstructor>& constructor)
 {
     // read the first byte (type)
     AP4_RtpConstructor::Type type;
@@ -618,16 +547,16 @@ AP4_RtpConstructorFactory::CreateConstructorFromStream(AP4_ByteStream& stream,
     // now create the right constructor
     switch(type) {
         case AP4_RTP_CONSTRUCTOR_TYPE_NOOP:
-            constructor = new AP4_NoopRtpConstructor(stream);
+            constructor = std::make_shared<AP4_NoopRtpConstructor>(stream);
             break;
         case AP4_RTP_CONSTRUCTOR_TYPE_IMMEDIATE:
-            constructor = new AP4_ImmediateRtpConstructor(stream);
+            constructor = std::make_shared<AP4_ImmediateRtpConstructor>(stream);
             break;
         case AP4_RTP_CONSTRUCTOR_TYPE_SAMPLE:
-            constructor = new AP4_SampleRtpConstructor(stream);
+            constructor = std::make_shared<AP4_SampleRtpConstructor>(stream);
             break;
         case AP4_RTP_CONSTRUCTOR_TYPE_SAMPLE_DESC:
-            constructor = new AP4_SampleDescRtpConstructor(stream);
+            constructor = std::make_shared<AP4_SampleDescRtpConstructor>(stream);
             break;
         default:
             return AP4_ERROR_INVALID_RTP_CONSTRUCTOR_TYPE;

@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_ATOM_FACTORY_H_
 #define _AP4_ATOM_FACTORY_H_
 
@@ -35,6 +37,8 @@
 #include "Ap4Types.h"
 #include "Ap4Atom.h"
 #include "Ap4Array.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -50,11 +54,11 @@ class AP4_AtomFactory {
      class TypeHandler {
      public:
          virtual ~TypeHandler() {};
-         virtual AP4_Result CreateAtom(AP4_Atom::Type  type,
-                                       AP4_UI32        size,
-                                       AP4_ByteStream& stream,
-                                       AP4_Atom::Type  context,
-                                       AP4_Atom*&      atom) = 0;
+         virtual AP4_Result CreateAtom(AP4_Atom::Type                  type,
+                                       AP4_UI32                        size,
+                                       std::shared_ptr<AP4_ByteStream> stream,
+                                       AP4_Atom::Type                  context,
+                                       AP4_Atom*&                      atom) = 0;
     };
 
     // constructor
@@ -66,21 +70,21 @@ class AP4_AtomFactory {
     // methods
     AP4_Result AddTypeHandler(TypeHandler* handler);
     AP4_Result RemoveTypeHandler(TypeHandler* handler);
-    AP4_Result CreateAtomFromStream(AP4_ByteStream& stream,
-                                    AP4_LargeSize&  bytes_available,
-                                    AP4_Atom*&      atom);
-    virtual AP4_Result CreateAtomFromStream(AP4_ByteStream& stream, 
-                                            AP4_UI32        type,
-                                            AP4_UI32        size_32,
-                                            AP4_UI64        size_64,
-                                            AP4_Atom*&      atom);
-    AP4_Result CreateAtomFromStream(AP4_ByteStream&  stream,
-                                    AP4_Atom*&       atom);
-    AP4_Result CreateAtomsFromStream(AP4_ByteStream& stream,
-                                     AP4_AtomParent& atoms);
-    AP4_Result CreateAtomsFromStream(AP4_ByteStream& stream,
-                                     AP4_LargeSize   bytes_available,
-                                     AP4_AtomParent& atoms);
+    AP4_Result CreateAtomFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                    AP4_LargeSize&                  bytes_available,
+                                    AP4_Atom*&                      atom);
+    virtual AP4_Result CreateAtomFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                            AP4_UI32                        type,
+                                            AP4_UI32                        size_32,
+                                            AP4_UI64                        size_64,
+                                            AP4_Atom*&                      atom);
+    AP4_Result CreateAtomFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                    AP4_Atom*&                      atom);
+    AP4_Result CreateAtomsFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                     AP4_AtomParent&                 atoms);
+    AP4_Result CreateAtomsFromStream(std::shared_ptr<AP4_ByteStream> stream,
+                                     AP4_LargeSize                   bytes_available,
+                                     AP4_AtomParent&                 atoms);
 
     // context
     void PushContext(AP4_Atom::Type context);

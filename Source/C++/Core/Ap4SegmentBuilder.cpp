@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -162,19 +164,15 @@ AP4_SegmentBuilder::WriteMediaSegment(AP4_ByteStream& stream, unsigned int seque
     stream.WriteUI32(AP4_ATOM_TYPE_MDAT);
     for (unsigned int i=0; i<m_Samples.ItemCount(); i++) {
         AP4_Result result;
-        AP4_ByteStream* data_stream = m_Samples[i].GetDataStream();
+        auto data_stream = m_Samples[i].GetDataStream();
         result = data_stream->Seek(m_Samples[i].GetOffset());
         if (AP4_FAILED(result)) {
-            data_stream->Release();
             return result;
         }
         result = data_stream->CopyTo(stream, m_Samples[i].GetSize());
         if (AP4_FAILED(result)) {
-            data_stream->Release();
             return result;
         }
-        
-        data_stream->Release();
     }
     
     // update counters
@@ -398,7 +396,7 @@ AP4_AvcSegmentBuilder::Feed(const void* data,
         }
         
         // format the sample data
-        AP4_MemoryByteStream* sample_data = new AP4_MemoryByteStream(sample_data_size);
+        auto sample_data = std::make_shared<AP4_MemoryByteStream>(sample_data_size);
         for (unsigned int i=0; i<access_unit_info.nal_units.ItemCount(); i++) {
             sample_data->WriteUI32(access_unit_info.nal_units[i]->GetDataSize());
             sample_data->Write(access_unit_info.nal_units[i]->GetData(), access_unit_info.nal_units[i]->GetDataSize());
@@ -415,9 +413,8 @@ AP4_AvcSegmentBuilder::Feed(const void* data,
         }
 
         // create a new sample and add it to the list
-        AP4_Sample sample(*sample_data, 0, sample_data_size, duration, 0, dts, 0, access_unit_info.is_idr);
+        AP4_Sample sample(sample_data, 0, sample_data_size, duration, 0, dts, 0, access_unit_info.is_idr);
         AddSample(sample);
-        sample_data->Release();
         
         // remember the sample order
         m_SampleOrders.Append(SampleOrder(access_unit_info.decode_order, access_unit_info.display_order));
@@ -532,7 +529,7 @@ AP4_HevcSegmentBuilder::Feed(const void* data,
         }
         
         // format the sample data
-        AP4_MemoryByteStream* sample_data = new AP4_MemoryByteStream(sample_data_size);
+        auto sample_data = std::make_shared<AP4_MemoryByteStream>(sample_data_size);
         for (unsigned int i=0; i<access_unit_info.nal_units.ItemCount(); i++) {
             sample_data->WriteUI32(access_unit_info.nal_units[i]->GetDataSize());
             sample_data->Write(access_unit_info.nal_units[i]->GetData(), access_unit_info.nal_units[i]->GetDataSize());
@@ -549,9 +546,8 @@ AP4_HevcSegmentBuilder::Feed(const void* data,
         }
 
         // create a new sample and add it to the list
-        AP4_Sample sample(*sample_data, 0, sample_data_size, duration, 0, dts, 0, access_unit_info.is_random_access);
+        AP4_Sample sample(sample_data, 0, sample_data_size, duration, 0, dts, 0, access_unit_info.is_random_access);
         AddSample(sample);
-        sample_data->Release();
         
         // remember the sample order
         m_SampleOrders.Append(SampleOrder(access_unit_info.decode_order, access_unit_info.display_order));
@@ -725,13 +721,12 @@ AP4_AacSegmentBuilder::Feed(const void* data,
         AP4_DataBuffer sample_data(frame.m_Info.m_FrameLength);
         sample_data.SetDataSize(frame.m_Info.m_FrameLength);
         frame.m_Source->ReadBytes(sample_data.UseData(), frame.m_Info.m_FrameLength);
-        AP4_MemoryByteStream* sample_data_stream = new AP4_MemoryByteStream(frame.m_Info.m_FrameLength);
+        auto sample_data_stream = std::make_shared<AP4_MemoryByteStream>(frame.m_Info.m_FrameLength);
         sample_data_stream->Write(sample_data.GetData(), sample_data.GetDataSize());
 
         // add the sample to the table
-        AP4_Sample sample(*sample_data_stream, 0, frame.m_Info.m_FrameLength, 1024, 0, 0, 0, true);
+        AP4_Sample sample(sample_data_stream, 0, frame.m_Info.m_FrameLength, 1024, 0, 0, 0, true);
         AddSample(sample);
-        sample_data_stream->Release();
         
         return 1;
     }
@@ -823,16 +818,15 @@ AP4_AacSegmentBuilder::WriteInitSegment(AP4_ByteStream& stream)
 /*----------------------------------------------------------------------
 |   AP4_StreamFeeder::AP4_StreamFeeder
 +---------------------------------------------------------------------*/
-AP4_StreamFeeder::AP4_StreamFeeder(AP4_ByteStream* source, AP4_FeedSegmentBuilder& builder) :
-    m_Source(source),
+AP4_StreamFeeder::AP4_StreamFeeder(std::shared_ptr<AP4_ByteStream> source, AP4_FeedSegmentBuilder& builder) :
+    m_Source(std::move(source)),
     m_Builder(builder),
     m_FeedBuffer(NULL),
     m_FeedBufferSize(0),
     m_FeedBytesPending(0),
     m_FeedBytesParsed(0)
 {
-    AP4_ASSERT(source);
-    source->AddReference();
+    AP4_ASSERT(m_Source);
     m_FeedBuffer = new AP4_UI08[AP4_STREAM_FEEDER_DEFAULT_BUFFER_SIZE];
     if (m_FeedBuffer) {
         m_FeedBufferSize = AP4_STREAM_FEEDER_DEFAULT_BUFFER_SIZE;
@@ -844,7 +838,6 @@ AP4_StreamFeeder::AP4_StreamFeeder(AP4_ByteStream* source, AP4_FeedSegmentBuilde
 +---------------------------------------------------------------------*/
 AP4_StreamFeeder::~AP4_StreamFeeder()
 {
-    m_Source->Release();
     delete[] m_FeedBuffer;
 }
 

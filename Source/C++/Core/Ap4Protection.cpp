@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -57,21 +59,21 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_ProtectedSampleDescription)
 /*----------------------------------------------------------------------
 |   AP4_EncaSampleEntry::AP4_EncaSampleEntry
 +---------------------------------------------------------------------*/
-AP4_EncaSampleEntry::AP4_EncaSampleEntry(AP4_UI32         type,
-                                         AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_AudioSampleEntry(type, size, stream, atom_factory)
+AP4_EncaSampleEntry::AP4_EncaSampleEntry(AP4_UI32                        type,
+                                         AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_AudioSampleEntry(type, size, std::move(stream), atom_factory)
 {
 }
 
 /*----------------------------------------------------------------------
 |   AP4_EncaSampleEntry::AP4_EncaSampleEntry
 +---------------------------------------------------------------------*/
-AP4_EncaSampleEntry::AP4_EncaSampleEntry(AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_AudioSampleEntry(AP4_ATOM_TYPE_ENCA, size, stream, atom_factory)
+AP4_EncaSampleEntry::AP4_EncaSampleEntry(AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_AudioSampleEntry(AP4_ATOM_TYPE_ENCA, size, std::move(stream), atom_factory)
 {
 }
 
@@ -156,21 +158,21 @@ AP4_EncaSampleEntry::ToTargetSampleDescription(AP4_UI32 format)
 /*----------------------------------------------------------------------
 |   AP4_EncvSampleEntry::AP4_EncvSampleEntry
 +---------------------------------------------------------------------*/
-AP4_EncvSampleEntry::AP4_EncvSampleEntry(AP4_UI32         type,
-                                         AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_VisualSampleEntry(type, size, stream, atom_factory)
+AP4_EncvSampleEntry::AP4_EncvSampleEntry(AP4_UI32                        type,
+                                         AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_VisualSampleEntry(type, size, std::move(stream), atom_factory)
 {
 }
 
 /*----------------------------------------------------------------------
 |   AP4_EncvSampleEntry::AP4_EncvSampleEntry
 +---------------------------------------------------------------------*/
-AP4_EncvSampleEntry::AP4_EncvSampleEntry(AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_VisualSampleEntry(AP4_ATOM_TYPE_ENCV, size, stream, atom_factory)
+AP4_EncvSampleEntry::AP4_EncvSampleEntry(AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_VisualSampleEntry(AP4_ATOM_TYPE_ENCV, size, std::move(stream), atom_factory)
 {
 }
 
@@ -285,20 +287,20 @@ AP4_EncvSampleEntry::ToTargetSampleDescription(AP4_UI32 format)
 /*----------------------------------------------------------------------
 |   AP4_DrmsSampleEntry::AP4_DrmsSampleEntry
 +---------------------------------------------------------------------*/
-AP4_DrmsSampleEntry::AP4_DrmsSampleEntry(AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_EncaSampleEntry(AP4_ATOM_TYPE_DRMS, size, stream, atom_factory)
+AP4_DrmsSampleEntry::AP4_DrmsSampleEntry(AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_EncaSampleEntry(AP4_ATOM_TYPE_DRMS, size, std::move(stream), atom_factory)
 {
 }
 
 /*----------------------------------------------------------------------
 |   AP4_DrmiSampleEntry::AP4_DrmiSampleEntry
 +---------------------------------------------------------------------*/
-AP4_DrmiSampleEntry::AP4_DrmiSampleEntry(AP4_Size         size,
-                                         AP4_ByteStream&  stream,
-                                         AP4_AtomFactory& atom_factory) :
-    AP4_EncvSampleEntry(AP4_ATOM_TYPE_DRMI, size, stream, atom_factory)
+AP4_DrmiSampleEntry::AP4_DrmiSampleEntry(AP4_Size                        size,
+                                         std::shared_ptr<AP4_ByteStream> stream,
+                                         AP4_AtomFactory&                atom_factory) :
+    AP4_EncvSampleEntry(AP4_ATOM_TYPE_DRMI, size, std::move(stream), atom_factory)
 {
 }
 
@@ -933,18 +935,18 @@ AP4_StandardDecryptingProcessor::CreateTrackHandler(AP4_TrakAtom* trak)
 |   AP4_DecryptingStream::AP4_DecryptingStream
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode mode,
-                             AP4_ByteStream&             encrypted_stream,
-                             AP4_LargeSize               cleartext_size,
-                             const AP4_UI08*             iv,
-                             AP4_Size                    iv_size,
-                             const AP4_UI08*             key,
-                             AP4_Size                    key_size,
-                             AP4_BlockCipherFactory*     block_cipher_factory,
-                             AP4_ByteStream*&            stream)
+AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode    mode,
+                            std::shared_ptr<AP4_ByteStream> encrypted_stream,
+                             AP4_LargeSize                  cleartext_size,
+                             const AP4_UI08*                iv,
+                             AP4_Size                       iv_size,
+                             const AP4_UI08*                key,
+                             AP4_Size                       key_size,
+                             AP4_BlockCipherFactory*        block_cipher_factory,
+                             std::shared_ptr<AP4_ByteStream>& stream)
 {
     // default return value
-    stream = NULL;
+    stream.reset();
 
     // default cipher settings
     if (block_cipher_factory == NULL) {
@@ -953,7 +955,7 @@ AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode mode,
     
     // get the encrypted size (includes padding)
     AP4_LargeSize encrypted_size = 0;
-    AP4_Result result = encrypted_stream.GetSize(encrypted_size);
+    AP4_Result result = encrypted_stream->GetSize(encrypted_size);
     if (AP4_FAILED(result)) return result;
     
     // check IV
@@ -985,9 +987,6 @@ AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode mode,
                                                 key_size, 
                                                 block_cipher);
     if (AP4_FAILED(result)) return result;
-    
-    // keep a reference to the source stream
-    encrypted_stream.AddReference();
 
     // create the cipher according to the mode
     AP4_StreamCipher* stream_cipher = NULL;
@@ -1007,10 +1006,13 @@ AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode mode,
     stream_cipher->SetIV(iv);
 
     // create the stream
-    stream = new AP4_DecryptingStream(cleartext_size, 
-                                      &encrypted_stream,
-                                      encrypted_size,
-                                      stream_cipher);
+    stream =
+        std::shared_ptr<AP4_DecryptingStream>(
+            new AP4_DecryptingStream(
+                cleartext_size,
+                encrypted_stream,
+                encrypted_size,
+                stream_cipher));
     
     return AP4_SUCCESS;
 }
@@ -1021,25 +1023,6 @@ AP4_DecryptingStream::Create(AP4_BlockCipher::CipherMode mode,
 AP4_DecryptingStream::~AP4_DecryptingStream()
 {
     delete m_StreamCipher;
-    m_EncryptedStream->Release();
-}
-
-/*----------------------------------------------------------------------
-|   AP4_DecryptingStream::AddReference
-+---------------------------------------------------------------------*/
-void 
-AP4_DecryptingStream::AddReference()
-{
-    ++m_ReferenceCount;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_DecryptingStream::Release
-+---------------------------------------------------------------------*/
-void 
-AP4_DecryptingStream::Release()
-{
-    if (--m_ReferenceCount == 0) delete this;
 }
 
 /*----------------------------------------------------------------------
@@ -1199,22 +1182,22 @@ AP4_DecryptingStream::GetSize(AP4_LargeSize& size)
 |   AP4_EncryptingStream::AP4_EncryptingStream
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_EncryptingStream::Create(AP4_BlockCipher::CipherMode mode,
-                             AP4_ByteStream&             cleartext_stream,
-                             const AP4_UI08*             iv,
-                             AP4_Size                    iv_size,
-                             const AP4_UI08*             key,
-                             AP4_Size                    key_size,
-                             bool                        prepend_iv,
-                             AP4_BlockCipherFactory*     block_cipher_factory,
-                             AP4_ByteStream*&            stream)
+AP4_EncryptingStream::Create(AP4_BlockCipher::CipherMode      mode,
+                             std::shared_ptr<AP4_ByteStream>  cleartext_stream,
+                             const AP4_UI08*                  iv,
+                             AP4_Size                         iv_size,
+                             const AP4_UI08*                  key,
+                             AP4_Size                         key_size,
+                             bool                             prepend_iv,
+                             AP4_BlockCipherFactory*          block_cipher_factory,
+                             std::shared_ptr<AP4_ByteStream>& stream)
 {
     // default return value
-    stream = NULL;
+    stream.reset();
 
     // get the cleartext size
     AP4_LargeSize cleartext_size = 0;
-    AP4_Result result = cleartext_stream.GetSize(cleartext_size);
+    AP4_Result result = cleartext_stream->GetSize(cleartext_size);
     if (AP4_FAILED(result)) return result;
     
     // check IV
@@ -1241,9 +1224,6 @@ AP4_EncryptingStream::Create(AP4_BlockCipher::CipherMode mode,
                                                 key_size, 
                                                 block_cipher);
     if (AP4_FAILED(result)) return result;
-    
-    // keep a reference to the source stream
-    cleartext_stream.AddReference();
 
     // create the cipher according to the mode
     AP4_StreamCipher* stream_cipher = NULL;
@@ -1262,11 +1242,14 @@ AP4_EncryptingStream::Create(AP4_BlockCipher::CipherMode mode,
     // set the IV
     stream_cipher->SetIV(iv);
 
-    // create the stream
-    AP4_EncryptingStream* enc_stream = new AP4_EncryptingStream(cleartext_size,
-                                                                &cleartext_stream,
-                                                                encrypted_size, 
-                                                                stream_cipher);
+    auto enc_stream =
+        std::shared_ptr<AP4_EncryptingStream>(
+            new AP4_EncryptingStream(
+                cleartext_size,
+                cleartext_stream,
+                encrypted_size,
+                stream_cipher));
+
     stream = enc_stream;
 
     // deal with the prepended IV if required
@@ -1285,25 +1268,6 @@ AP4_EncryptingStream::Create(AP4_BlockCipher::CipherMode mode,
 AP4_EncryptingStream::~AP4_EncryptingStream()
 {
     delete m_StreamCipher;
-    m_CleartextStream->Release();
-}
-
-/*----------------------------------------------------------------------
-|   AP4_EncryptingStream::AddReference
-+---------------------------------------------------------------------*/
-void 
-AP4_EncryptingStream::AddReference()
-{
-    ++m_ReferenceCount;
-}
-
-/*----------------------------------------------------------------------
-|   AP4_EncryptingStream::Release
-+---------------------------------------------------------------------*/
-void 
-AP4_EncryptingStream::Release()
-{
-    if (--m_ReferenceCount == 0) delete this;
 }
 
 /*----------------------------------------------------------------------

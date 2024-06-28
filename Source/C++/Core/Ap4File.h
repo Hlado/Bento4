@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+ //Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_FILE_H_
 #define _AP4_FILE_H_
 
@@ -103,9 +105,9 @@ public:
      * when the moov atom is found or if all atoms should be parsed until the
      * end of the file. 
      */
-    AP4_File(AP4_ByteStream&  stream, 
-             AP4_AtomFactory& atom_factory,
-             bool             moov_only);
+    AP4_File(std::shared_ptr<AP4_ByteStream> stream,
+             AP4_AtomFactory&                atom_factory,
+             bool                            moov_only);
 
     /**
      * Constructs an AP4_File from a stream using the default atom factory
@@ -114,7 +116,7 @@ public:
      * when the moov atom is found or if all atoms should be parsed until the
      * end of the file. 
      */
-    AP4_File(AP4_ByteStream& stream, bool moov_only = false);
+    AP4_File(std::shared_ptr<AP4_ByteStream> stream, bool moov_only = false);
 
     /**
      * Destroys the AP4_File instance 
@@ -163,9 +165,9 @@ public:
 
 private:
     // methods
-    void ParseStream(AP4_ByteStream&  stream,
-                     AP4_AtomFactory& atom_factory,
-                     bool             moov_only);
+    void ParseStream(std::shared_ptr<AP4_ByteStream> stream,
+                     AP4_AtomFactory&                atom_factory,
+                     bool                            moov_only);
     
     // members
     AP4_Movie*    m_Movie;

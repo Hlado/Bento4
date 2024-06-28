@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_CONTAINER_ATOM_H_
 #define _AP4_CONTAINER_ATOM_H_
 
@@ -35,6 +37,8 @@
 #include "Ap4Types.h"
 #include "Ap4List.h"
 #include "Ap4Atom.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -51,12 +55,12 @@ public:
     AP4_IMPLEMENT_DYNAMIC_CAST_D2(AP4_ContainerAtom, AP4_Atom, AP4_AtomParent)
 
     // class methods
-    static AP4_ContainerAtom* Create(Type             type, 
-                                     AP4_UI64         size, 
-                                     bool             is_full,
-                                     bool             force_64,
-                                     AP4_ByteStream&  stream,
-                                     AP4_AtomFactory& atom_factory);
+    static AP4_ContainerAtom* Create(Type                            type,
+                                     AP4_UI64                        size,
+                                     bool                            is_full,
+                                     bool                            force_64,
+                                     std::shared_ptr<AP4_ByteStream> stream,
+                                     AP4_AtomFactory&                atom_factory);
 
     // methods
     explicit AP4_ContainerAtom(Type type);
@@ -76,23 +80,23 @@ public:
 
 protected:
     // constructors
-    AP4_ContainerAtom(Type             type, 
-                      AP4_UI64         size, 
-                      bool             force_64,
-                      AP4_UI08         version,
-                      AP4_UI32         flags,
-                      AP4_ByteStream&  stream,
-                      AP4_AtomFactory& atom_factory);
-    AP4_ContainerAtom(Type             type, 
-                      AP4_UI64         size, 
-                      bool             force_64,
-                      AP4_ByteStream&  stream,
-                      AP4_AtomFactory& atom_factory);
+    AP4_ContainerAtom(Type                            type,
+                      AP4_UI64                        size,
+                      bool                            force_64,
+                      AP4_UI08                        version,
+                      AP4_UI32                        flags,
+                      std::shared_ptr<AP4_ByteStream> stream,
+                      AP4_AtomFactory&                atom_factory);
+    AP4_ContainerAtom(Type                            type,
+                      AP4_UI64                        size,
+                      bool                            force_64,
+                      std::shared_ptr<AP4_ByteStream> stream,
+                      AP4_AtomFactory&                atom_factory);
 
     // methods
-    void ReadChildren(AP4_AtomFactory& atom_factory,
-                      AP4_ByteStream&  stream, 
-                      AP4_UI64         size);
+    void ReadChildren(AP4_AtomFactory&                atom_factory,
+                      std::shared_ptr<AP4_ByteStream> stream,
+                      AP4_UI64                        size);
 };
 
 #endif // _AP4_CONTAINER_ATOM_H_

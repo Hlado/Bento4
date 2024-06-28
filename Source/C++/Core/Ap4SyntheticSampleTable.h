@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_SYNTHETIC_SAMPLE_TABLE_H_
 #define _AP4_SYNTHETIC_SAMPLE_TABLE_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4Sample.h"
 #include "Ap4SampleTable.h"
 #include "Ap4SampleDescription.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   forward declarations
@@ -110,14 +114,14 @@ class AP4_SyntheticSampleTable : public AP4_SampleTable
      * (decoding timestamp) of the sample (in the timescale of the media)
      * @param sync Boolean flag indicating whether this is a sync sample or not.
      */
-    virtual AP4_Result AddSample(AP4_ByteStream& data_stream,
-                                 AP4_Position    offset,
-                                 AP4_Size        size,
-                                 AP4_UI32        duration,
-                                 AP4_Ordinal     description_index,
-                                 AP4_UI64        dts,
-                                 AP4_UI32        cts_delta,
-                                 bool            sync);
+    virtual AP4_Result AddSample(std::shared_ptr<AP4_ByteStream> data_stream,
+                                 AP4_Position                    offset,
+                                 AP4_Size                        size,
+                                 AP4_UI32                        duration,
+                                 AP4_Ordinal                     description_index,
+                                 AP4_UI64                        dts,
+                                 AP4_UI32                        cts_delta,
+                                 bool                            sync);
 
     virtual AP4_Result AddSample(const AP4_Sample& sample);
 

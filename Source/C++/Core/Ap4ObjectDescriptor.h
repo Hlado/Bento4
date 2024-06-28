@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_OBJECT_DESCRIPTOR_H_
 #define _AP4_OBJECT_DESCRIPTOR_H_
 
@@ -36,6 +38,8 @@
 #include "Ap4String.h"
 #include "Ap4Descriptor.h"
 #include "Ap4Command.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -59,10 +63,10 @@ class AP4_ObjectDescriptor : public AP4_Descriptor
     AP4_IMPLEMENT_DYNAMIC_CAST_D(AP4_ObjectDescriptor, AP4_Descriptor)
 
     // methods
-    AP4_ObjectDescriptor(AP4_ByteStream& stream, 
-                         AP4_UI08        tag,
-                         AP4_Size        header_size, 
-                         AP4_Size        payload_size);
+    AP4_ObjectDescriptor(std::shared_ptr<AP4_ByteStream> stream,
+                         AP4_UI08                        tag,
+                         AP4_Size                        header_size, 
+                         AP4_Size                        payload_size);
     AP4_ObjectDescriptor(AP4_UI08 tag, AP4_UI16 id);
     virtual ~AP4_ObjectDescriptor();
     
@@ -99,10 +103,10 @@ class AP4_InitialObjectDescriptor : public AP4_ObjectDescriptor
 {
  public:
     // methods
-    AP4_InitialObjectDescriptor(AP4_ByteStream& stream, 
-                                AP4_UI08        tag,
-                                AP4_Size        header_size, 
-                                AP4_Size        payload_size);
+    AP4_InitialObjectDescriptor(std::shared_ptr<AP4_ByteStream> stream,
+                                AP4_UI08                        tag,
+                                AP4_Size                        header_size, 
+                                AP4_Size                        payload_size);
     AP4_InitialObjectDescriptor(AP4_UI08    tag, // should be AP4_DESCRIPTOR_TAG_IOD or AP4_DESCRIPTOR_TAG_MP4_IOD
                                 AP4_UI16    object_descriptor_id,
                                 bool        include_inline_profile_level,
@@ -147,10 +151,10 @@ class AP4_DescriptorUpdateCommand : public AP4_Command
 
     // methods
     AP4_DescriptorUpdateCommand(AP4_UI08 tag);
-    AP4_DescriptorUpdateCommand(AP4_ByteStream& stream, 
-                                AP4_UI08        tag,
-                                AP4_Size        header_size, 
-                                AP4_Size        payload_size);
+    AP4_DescriptorUpdateCommand(std::shared_ptr<AP4_ByteStream> stream,
+                                AP4_UI08                        tag,
+                                AP4_Size                        header_size, 
+                                AP4_Size                        payload_size);
     virtual ~AP4_DescriptorUpdateCommand();
     virtual AP4_Result AddDescriptor(AP4_Descriptor* descriptor);
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);

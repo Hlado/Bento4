@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_META_DATA_H_
 #define _AP4_META_DATA_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4String.h"
 #include "Ap4Array.h"
 #include "Ap4List.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -281,11 +285,11 @@ public:
     // constructor
     AP4_MetaDataAtomTypeHandler(AP4_AtomFactory* atom_factory) :
       m_AtomFactory(atom_factory) {}
-    virtual AP4_Result CreateAtom(AP4_Atom::Type  type,
-                                  AP4_UI32        size,
-                                  AP4_ByteStream& stream,
-                                  AP4_Atom::Type  context,
-                                  AP4_Atom*&      atom);
+    virtual AP4_Result CreateAtom(AP4_Atom::Type                  type,
+                                  AP4_UI32                        size,
+                                  std::shared_ptr<AP4_ByteStream> stream,
+                                  AP4_Atom::Type                  context,
+                                  AP4_Atom*&                      atom) override;
 
     // types
     struct TypeList {
@@ -478,10 +482,7 @@ public:
 
     // constructors
     AP4_DataAtom(const AP4_MetaData::Value& value);
-    AP4_DataAtom(AP4_UI32 size, AP4_ByteStream& stream);
-
-    // destructor
-    ~AP4_DataAtom();
+    AP4_DataAtom(AP4_UI32 size, std::shared_ptr<AP4_ByteStream> stream);
 
     // AP4_Atom methods
     virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
@@ -499,9 +500,9 @@ public:
 
 private:
     // members
-    DataType        m_DataType;
-    DataLang        m_DataLang;
-    AP4_ByteStream* m_Source;
+    DataType                        m_DataType;
+    DataLang                        m_DataLang;
+    std::shared_ptr<AP4_ByteStream> m_Source;
 };
 
 /*----------------------------------------------------------------------

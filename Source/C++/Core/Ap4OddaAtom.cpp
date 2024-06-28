@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -41,13 +43,13 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_OddaAtom)
 |   AP4_OddaAtom::Create
 +---------------------------------------------------------------------*/
 AP4_OddaAtom*
-AP4_OddaAtom::Create(AP4_UI64         size, 
-                     AP4_ByteStream&  stream)
+AP4_OddaAtom::Create(AP4_UI64                        size, 
+                     std::shared_ptr<AP4_ByteStream> stream)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_OddaAtom(size, version, flags, stream);
 }
@@ -58,46 +60,37 @@ AP4_OddaAtom::Create(AP4_UI64         size,
 AP4_OddaAtom::AP4_OddaAtom(AP4_UI64        size, 
                            AP4_UI08        version,
                            AP4_UI32        flags,
-                           AP4_ByteStream& stream) :
+                           std::shared_ptr<AP4_ByteStream> stream) :
     AP4_Atom(AP4_ATOM_TYPE_ODDA, size, true, version, flags)
 {
     // data length
-    stream.ReadUI64(m_EncryptedDataLength);
+    stream->ReadUI64(m_EncryptedDataLength);
 
     // get the source stream position
     AP4_Position position; 
-    stream.Tell(position);
+    stream->Tell(position);
 
     // create a substream to represent the payload
-    m_EncryptedPayload = new AP4_SubStream(stream, position, m_EncryptedDataLength);
+    m_EncryptedPayload = std::make_shared<AP4_SubStream>(stream, position, m_EncryptedDataLength);
     
     // seek to the end
-    stream.Seek(position+m_EncryptedDataLength);
+    stream->Seek(position+m_EncryptedDataLength);
 }
 
 /*----------------------------------------------------------------------
 |   AP4_OddaAtom::AP4_OddaAtom
 +---------------------------------------------------------------------*/
-AP4_OddaAtom::AP4_OddaAtom(AP4_ByteStream& encrypted_payload) :
+AP4_OddaAtom::AP4_OddaAtom(std::shared_ptr<AP4_ByteStream> encrypted_payload) :
     AP4_Atom(AP4_ATOM_TYPE_ODDA, 0, true, 0, 0)
 {
     // encrypted data length
-    encrypted_payload.GetSize(m_EncryptedDataLength);
+    encrypted_payload->GetSize(m_EncryptedDataLength);
     
     // update our size 
     SetSize(AP4_FULL_ATOM_HEADER_SIZE_64+8+m_EncryptedDataLength, true);
     
     // keep a reference to the encrypted payload
-    m_EncryptedPayload = &encrypted_payload;
-    m_EncryptedPayload->AddReference();
-}
-
-/*----------------------------------------------------------------------
-|   AP4_OddaAtom::~AP4_OddaAtom
-+---------------------------------------------------------------------*/
-AP4_OddaAtom::~AP4_OddaAtom()
-{
-    if (m_EncryptedPayload) m_EncryptedPayload->Release();
+    m_EncryptedPayload = std::move(encrypted_payload);
 }
 
 
@@ -105,14 +98,9 @@ AP4_OddaAtom::~AP4_OddaAtom()
 |   AP4_OddaAtom::SetEncryptedPayload
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_OddaAtom::SetEncryptedPayload(AP4_ByteStream& stream, AP4_LargeSize length)
+AP4_OddaAtom::SetEncryptedPayload(std::shared_ptr<AP4_ByteStream> stream, AP4_LargeSize length)
 {
-    // keep a reference to the stream
-    if (m_EncryptedPayload) {
-        m_EncryptedPayload->Release();
-    }
-    m_EncryptedPayload = &stream;
-    m_EncryptedPayload->AddReference();
+    m_EncryptedPayload = std::move(stream);
     
     // update the size
     m_EncryptedDataLength = length;
@@ -126,14 +114,14 @@ AP4_OddaAtom::SetEncryptedPayload(AP4_ByteStream& stream, AP4_LargeSize length)
 |   AP4_OddaAtom::SetEncryptedPayload
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_OddaAtom::SetEncryptedPayload(AP4_ByteStream& stream)
+AP4_OddaAtom::SetEncryptedPayload(std::shared_ptr<AP4_ByteStream> stream)
 {
     // the new encrypted data length is the size of the stream
     AP4_LargeSize length;
-    AP4_Result result = stream.GetSize(length);
+    AP4_Result result = stream->GetSize(length);
     if (AP4_FAILED(result)) return result;
     
-    return SetEncryptedPayload(stream, length);
+    return SetEncryptedPayload(std::move(stream), length);
 }
 
 /*----------------------------------------------------------------------

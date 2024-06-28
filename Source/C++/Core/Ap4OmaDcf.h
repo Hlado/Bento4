@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_OMA_DCF_H_
 #define _AP4_OMA_DCF_H_
 
@@ -40,6 +42,8 @@
 #include "Ap4Processor.h"
 #include "Ap4Protection.h"
 #include "Ap4DynamicCast.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -75,23 +79,23 @@ public:
 
     // Returns a byte stream that will produce the decrypted data found
     // in the 'odda' child atom of an 'odrm' atom
-    static AP4_Result CreateDecryptingStream(AP4_ContainerAtom&      odrm_atom,
-                                             const AP4_UI08*         key,
-                                             AP4_Size                key_size,
-                                             AP4_BlockCipherFactory* block_cipher_factory,
-                                             AP4_ByteStream*&        stream);
+    static AP4_Result CreateDecryptingStream(AP4_ContainerAtom&               odrm_atom,
+                                             const AP4_UI08*                  key,
+                                             AP4_Size                         key_size,
+                                             AP4_BlockCipherFactory*          block_cipher_factory,
+                                             std::shared_ptr<AP4_ByteStream>& stream);
 
     // Returns a byte stream that will produce the decrypted data from
     // an encrypted stream where the IV follows the encrypted bytes.
     // This method is normally not called directly: most callers will call 
     // the stream factory that takes an 'odrm' atom as an input parameter
-    static AP4_Result CreateDecryptingStream(AP4_OmaDcfCipherMode    mode,
-                                             AP4_ByteStream&         encrypted_stream,
-                                             AP4_LargeSize           cleartext_size,
-                                             const AP4_UI08*         key,
-                                             AP4_Size                key_size,
-                                             AP4_BlockCipherFactory* block_cipher_factory,
-                                             AP4_ByteStream*&        stream);
+    static AP4_Result CreateDecryptingStream(AP4_OmaDcfCipherMode             mode,
+                                             std::shared_ptr<AP4_ByteStream>  encrypted_stream,
+                                             AP4_LargeSize                    cleartext_size,
+                                             const AP4_UI08*                  key,
+                                             AP4_Size                         key_size,
+                                             AP4_BlockCipherFactory*          block_cipher_factory,
+                                             std::shared_ptr<AP4_ByteStream>& stream);
 };
 
 /*----------------------------------------------------------------------

@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -148,14 +150,14 @@ AP4_SyntheticSampleTable::AddSampleDescription(AP4_SampleDescription* descriptio
 |   AP4_SyntheticSampleTable::AddSample
 +---------------------------------------------------------------------*/
 AP4_Result 
-AP4_SyntheticSampleTable::AddSample(AP4_ByteStream& data_stream,
-                                    AP4_Position    offset,
-                                    AP4_Size        size,
-                                    AP4_UI32        duration,
-                                    AP4_Ordinal     description_index,
-                                    AP4_UI64        dts,
-                                    AP4_UI32        cts_delta,
-                                    bool            sync)
+AP4_SyntheticSampleTable::AddSample(std::shared_ptr<AP4_ByteStream> data_stream,
+                                    AP4_Position                    offset,
+                                    AP4_Size                        size,
+                                    AP4_UI32                        duration,
+                                    AP4_Ordinal                     description_index,
+                                    AP4_UI64                        dts,
+                                    AP4_UI32                        cts_delta,
+                                    bool                            sync)
 {
     // decide if we need to start a new chunk or increment the last one
     if (m_SamplesInChunk.ItemCount() == 0 ||

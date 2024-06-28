@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -42,12 +44,12 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_EsdsAtom)
 |   AP4_EsdsAtom::Create
 +---------------------------------------------------------------------*/
 AP4_EsdsAtom*
-AP4_EsdsAtom::Create(AP4_Size size, AP4_ByteStream& stream)
+AP4_EsdsAtom::Create(AP4_Size size, std::shared_ptr<AP4_ByteStream> stream)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_EsdsAtom(size, version, flags, stream);
 }
@@ -65,10 +67,10 @@ AP4_EsdsAtom::AP4_EsdsAtom(AP4_EsDescriptor* descriptor) :
 /*----------------------------------------------------------------------
 |   AP4_EsdsAtom::AP4_EsdsAtom
 +---------------------------------------------------------------------*/
-AP4_EsdsAtom::AP4_EsdsAtom(AP4_UI32        size, 
-                           AP4_UI08        version,
-                           AP4_UI32        flags,
-                           AP4_ByteStream& stream) :
+AP4_EsdsAtom::AP4_EsdsAtom(AP4_UI32                        size,
+                           AP4_UI08                        version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream) :
     AP4_Atom(AP4_ATOM_TYPE_ESDS, size, version, flags)
 {
     // read descriptor

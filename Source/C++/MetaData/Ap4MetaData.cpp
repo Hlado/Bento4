@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -405,11 +407,11 @@ const AP4_MetaDataAtomTypeHandler::TypeList AP4_MetaDataAtomTypeHandler::IlstTyp
 |   AP4_MetaDataAtomTypeHandler::CreateAtom
 +---------------------------------------------------------------------*/
 AP4_Result 
-AP4_MetaDataAtomTypeHandler::CreateAtom(AP4_Atom::Type  type,
-                                        AP4_UI32        size,
-                                        AP4_ByteStream& stream,
-                                        AP4_Atom::Type  context,
-                                        AP4_Atom*&      atom)
+AP4_MetaDataAtomTypeHandler::CreateAtom(AP4_Atom::Type                  type,
+                                        AP4_UI32                        size,
+                                        std::shared_ptr<AP4_ByteStream> stream,
+                                        AP4_Atom::Type                  context,
+                                        AP4_Atom*&                      atom)
 {
     atom = NULL;
 
@@ -425,15 +427,15 @@ AP4_MetaDataAtomTypeHandler::CreateAtom(AP4_Atom::Type  type,
         }
     } else if (context == AP4_ATOM_TYPE_dddd) {
         if (type == AP4_ATOM_TYPE_MEAN || type == AP4_ATOM_TYPE_NAME) {
-            atom = new AP4_MetaDataStringAtom(type, size, stream);
+            atom = new AP4_MetaDataStringAtom(type, size, *stream);
         }
     } else if (context == AP4_ATOM_TYPE_UDTA) {
         if (IsTypeInList(type, _3gppLocalizedStringTypeList)) {
-            atom = AP4_3GppLocalizedStringAtom::Create(type, size, stream);
+            atom = AP4_3GppLocalizedStringAtom::Create(type, size, *stream);
         } else if (IsTypeInList(type, DcfStringTypeList)) {
-            atom = AP4_DcfStringAtom::Create(type, size, stream);
+            atom = AP4_DcfStringAtom::Create(type, size, *stream);
         } else if (type == AP4_ATOM_TYPE_DCFD) {
-            atom = AP4_DcfdAtom::Create(size, stream);
+            atom = AP4_DcfdAtom::Create(size, *stream);
         }
     }
 
@@ -1354,18 +1356,16 @@ AP4_AtomMetaDataValue::ToInteger() const
 AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
     AP4_Atom(AP4_ATOM_TYPE_DATA, AP4_ATOM_HEADER_SIZE),
     m_DataType(DATA_TYPE_BINARY),
-    m_Source(NULL)
+    m_Source(std::make_unique<AP4_MemoryByteStream>())
 {
-    AP4_MemoryByteStream* memory = new AP4_MemoryByteStream();
     AP4_Size payload_size = 8;
-    m_Source = memory;
     
     switch (value.GetType()) {
         case AP4_MetaData::Value::TYPE_STRING_UTF_8: {
             m_DataType = DATA_TYPE_STRING_UTF_8;
             AP4_String string_value = value.ToString();
             if (string_value.GetLength()) {
-                memory->Write(string_value.GetChars(), string_value.GetLength());
+                m_Source->Write(string_value.GetChars(), string_value.GetLength());
             }
             payload_size += string_value.GetLength();
             break;
@@ -1374,7 +1374,7 @@ AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
         case AP4_MetaData::Value::TYPE_INT_08_BE: {
             m_DataType = DATA_TYPE_SIGNED_INT_BE;
             AP4_UI08 int_value = (AP4_UI08)value.ToInteger();
-            memory->Write(&int_value, 1);
+            m_Source->Write(&int_value, 1);
             payload_size += 1;
             break;
         }
@@ -1382,7 +1382,7 @@ AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
         case AP4_MetaData::Value::TYPE_INT_16_BE: {
             m_DataType = DATA_TYPE_SIGNED_INT_BE;
             AP4_UI16 int_value = (AP4_UI16)value.ToInteger();
-            memory->Write(&int_value, 2);
+            m_Source->Write(&int_value, 2);
             payload_size += 2;
             break;
         }
@@ -1390,7 +1390,7 @@ AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
         case AP4_MetaData::Value::TYPE_INT_32_BE: {
             m_DataType = DATA_TYPE_SIGNED_INT_BE;
             AP4_UI32 int_value = (AP4_UI32)value.ToInteger();
-            memory->Write(&int_value, 4);
+            m_Source->Write(&int_value, 4);
             payload_size += 4;
             break;
         }
@@ -1405,7 +1405,7 @@ AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
             AP4_DataBuffer buffer;
             value.ToBytes(buffer);
             if (buffer.GetDataSize()) {
-                memory->Write(buffer.GetData(), buffer.GetDataSize());
+                m_Source->Write(buffer.GetData(), buffer.GetDataSize());
             }
             payload_size += buffer.GetDataSize();
             break;
@@ -1429,29 +1429,21 @@ AP4_DataAtom::AP4_DataAtom(const AP4_MetaData::Value& value) :
 /*----------------------------------------------------------------------
 |   AP4_DataAtom::AP4_DataAtom
 +---------------------------------------------------------------------*/
-AP4_DataAtom::AP4_DataAtom(AP4_UI32 size, AP4_ByteStream& stream) :
+AP4_DataAtom::AP4_DataAtom(AP4_UI32 size, std::shared_ptr<AP4_ByteStream> stream) :
     AP4_Atom(AP4_ATOM_TYPE_DATA, size),
-    m_Source(NULL)
+    m_Source(nullptr)
 {
     if (size < AP4_ATOM_HEADER_SIZE+8) return;
 
     AP4_UI32 i;
-    stream.ReadUI32(i); m_DataType = (DataType)i;
-    stream.ReadUI32(i); m_DataLang = (DataLang)i;
+    stream->ReadUI32(i); m_DataType = (DataType)i;
+    stream->ReadUI32(i); m_DataLang = (DataLang)i;
 
     // the stream for the data is a substream of this source
     AP4_Position data_offset;
-    stream.Tell(data_offset);
+    stream->Tell(data_offset);
     AP4_Size data_size = size-AP4_ATOM_HEADER_SIZE-8;
-    m_Source = new AP4_SubStream(stream, data_offset, data_size);
-}
-
-/*----------------------------------------------------------------------
-|   AP4_DataAtom::~AP4_DataAtom
-+---------------------------------------------------------------------*/
-AP4_DataAtom::~AP4_DataAtom()
-{
-    delete(m_Source);
+    m_Source = std::make_shared<AP4_SubStream>(stream,data_offset,data_size);
 }
 
 /*----------------------------------------------------------------------

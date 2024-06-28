@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -310,21 +312,17 @@ AP4_Atom::Clone()
     if (size > AP4_ATOM_MAX_CLONE_SIZE) return NULL;
 
     // create a memory byte stream to which we can serialize
-    AP4_MemoryByteStream* mbs = new AP4_MemoryByteStream((AP4_Size)GetSize());
+    auto mbs = std::make_shared<AP4_MemoryByteStream>((AP4_Size)GetSize());
 
     // serialize to memory
     if (AP4_FAILED(Write(*mbs))) {
-        mbs->Release();
         return NULL;
     }
 
     // create the clone from the serialized form
     mbs->Seek(0);
     AP4_DefaultAtomFactory atom_factory;
-    atom_factory.CreateAtomFromStream(*mbs, clone);
-
-    // release the memory stream
-    mbs->Release();
+    atom_factory.CreateAtomFromStream(mbs, clone);
 
     return clone;
 }
@@ -334,26 +332,27 @@ AP4_Atom::Clone()
 +---------------------------------------------------------------------*/
 AP4_UnknownAtom::AP4_UnknownAtom(Type            type,
                                  AP4_UI64        size,
-                                 AP4_ByteStream& stream) :
+                                 std::shared_ptr<AP4_ByteStream> stream) :
     AP4_Atom(type, size),
-    m_SourceStream(&stream)
+    //no move here because of original function logic using argument after setting member to null
+    m_SourceStream(stream)
 {
     if (size <= AP4_UNKNOWN_ATOM_MAX_LOCAL_PAYLOAD_SIZE &&
         type != AP4_ATOM_TYPE_MDAT) {
         m_SourcePosition = 0;
-        m_SourceStream   = NULL;
+        m_SourceStream.reset();
         AP4_UI32 payload_size = (AP4_UI32)size-GetHeaderSize();
         m_Payload.SetDataSize(payload_size);
-        stream.Read(m_Payload.UseData(), payload_size);
+        stream->Read(m_Payload.UseData(), payload_size);
         return;
     }
 
     // store source stream position
-    stream.Tell(m_SourcePosition);
+    stream->Tell(m_SourcePosition);
 
     // clamp to the file size
     AP4_UI64 file_size;
-    if (AP4_SUCCEEDED(stream.GetSize(file_size))) {
+    if (AP4_SUCCEEDED(stream->GetSize(file_size))) {
         if (m_SourcePosition-GetHeaderSize()+size > file_size) {
             if (m_Size32 == 1) {
                 // size is encoded as a large size
@@ -364,9 +363,6 @@ AP4_UnknownAtom::AP4_UnknownAtom(Type            type,
             }
         }
     }
-
-    // keep a reference to the source stream
-    m_SourceStream->AddReference();
 }
 
 /*----------------------------------------------------------------------
@@ -376,7 +372,7 @@ AP4_UnknownAtom::AP4_UnknownAtom(Type            type,
                                  const AP4_UI08* payload,
                                  AP4_Size        payload_size) :
     AP4_Atom(type, AP4_ATOM_HEADER_SIZE+payload_size, false),
-    m_SourceStream(NULL),
+    m_SourceStream(nullptr),
     m_SourcePosition(0)
 {
     m_Payload.SetData(payload, payload_size);
@@ -393,9 +389,6 @@ AP4_UnknownAtom::AP4_UnknownAtom(const AP4_UnknownAtom& other) :
 {
     m_Size32 = other.m_Size32;
     m_Size64 = other.m_Size64;
-    if (m_SourceStream) {
-        m_SourceStream->AddReference();
-    }
 }
 
 /*----------------------------------------------------------------------
@@ -403,10 +396,7 @@ AP4_UnknownAtom::AP4_UnknownAtom(const AP4_UnknownAtom& other) :
 +---------------------------------------------------------------------*/
 AP4_UnknownAtom::~AP4_UnknownAtom()
 {
-    // release the source stream reference
-    if (m_SourceStream) {
-        m_SourceStream->Release();
-    }
+
 }
 
 /*----------------------------------------------------------------------
@@ -794,10 +784,10 @@ AP4_MakePrefixString(unsigned int indent, char* prefix, AP4_Size size)
 /*----------------------------------------------------------------------
 |   AP4_PrintInspector::AP4_PrintInspector
 +---------------------------------------------------------------------*/
-    AP4_PrintInspector::AP4_PrintInspector(AP4_ByteStream& stream, AP4_Cardinal indent) :
-    m_Stream(&stream)
+AP4_PrintInspector::AP4_PrintInspector(
+    std::shared_ptr<AP4_ByteStream> stream,
+    AP4_Cardinal indent) : m_Stream(std::move(stream))
 {
-    m_Stream->AddReference();
     PushContext(Context::TOP_LEVEL);
 }
 
@@ -806,7 +796,7 @@ AP4_MakePrefixString(unsigned int indent, char* prefix, AP4_Size size)
 +---------------------------------------------------------------------*/
 AP4_PrintInspector::~AP4_PrintInspector()
 {
-    m_Stream->Release();
+
 }
 
 /*----------------------------------------------------------------------
@@ -1100,10 +1090,9 @@ AP4_PrintInspector::AddField(const char*          name,
 /*----------------------------------------------------------------------
 |   AP4_JsonInspector::AP4_JsonInspector
 +---------------------------------------------------------------------*/
-AP4_JsonInspector::AP4_JsonInspector(AP4_ByteStream& stream) :
-    m_Stream(&stream)
+AP4_JsonInspector::AP4_JsonInspector(std::shared_ptr<AP4_ByteStream> stream) :
+    m_Stream(std::move(stream))
 {
-    m_Stream->AddReference();
     m_Stream->WriteString("[\n");
     PushContext(Context::TOP_LEVEL);
 }
@@ -1114,7 +1103,6 @@ AP4_JsonInspector::AP4_JsonInspector(AP4_ByteStream& stream) :
 AP4_JsonInspector::~AP4_JsonInspector()
 {
     m_Stream->WriteString("\n]\n");
-    m_Stream->Release();
 }
 
 /*----------------------------------------------------------------------

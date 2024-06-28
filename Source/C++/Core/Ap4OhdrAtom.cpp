@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -41,14 +43,14 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_OhdrAtom)
 |   AP4_OhdrAtom::Create
 +---------------------------------------------------------------------*/
 AP4_OhdrAtom*
-AP4_OhdrAtom::Create(AP4_Size         size, 
-                     AP4_ByteStream&  stream,
-                     AP4_AtomFactory& atom_factory)
+AP4_OhdrAtom::Create(AP4_Size                        size, 
+                     std::shared_ptr<AP4_ByteStream> stream,
+                     AP4_AtomFactory&                atom_factory)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_OhdrAtom(size, version, flags, stream, atom_factory);
 }
@@ -77,45 +79,45 @@ AP4_OhdrAtom::AP4_OhdrAtom(AP4_UI08        encryption_method,
 /*----------------------------------------------------------------------
 |   AP4_OhdrAtom::AP4_OhdrAtom
 +---------------------------------------------------------------------*/
-AP4_OhdrAtom::AP4_OhdrAtom(AP4_UI32         size, 
-                           AP4_UI08         version,
-                           AP4_UI32         flags,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_OhdrAtom::AP4_OhdrAtom(AP4_UI32                        size, 
+                           AP4_UI08                        version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_OHDR, size, false, version, flags)
 {
     // encryption method
-    stream.ReadUI08(m_EncryptionMethod);
+    stream->ReadUI08(m_EncryptionMethod);
     
     // padding scheme
-    stream.ReadUI08(m_PaddingScheme);
+    stream->ReadUI08(m_PaddingScheme);
 
     // plaintext length
-    stream.ReadUI64(m_PlaintextLength);
+    stream->ReadUI64(m_PlaintextLength);
 
     // string lengths
     AP4_UI16 content_id_length;
     AP4_UI16 rights_issuer_url_length;
     AP4_UI16 textual_headers_length;
-    stream.ReadUI16(content_id_length);
-    stream.ReadUI16(rights_issuer_url_length);
-    stream.ReadUI16(textual_headers_length);
+    stream->ReadUI16(content_id_length);
+    stream->ReadUI16(rights_issuer_url_length);
+    stream->ReadUI16(textual_headers_length);
 
     // content id
     char* buffer = new char[content_id_length];
-    stream.Read(buffer, content_id_length);
+    stream->Read(buffer, content_id_length);
     m_ContentId.Assign(buffer, content_id_length);
     delete[] buffer;
 
     // rights issuer url
     buffer = new char[rights_issuer_url_length];
-    stream.Read(buffer, rights_issuer_url_length);
+    stream->Read(buffer, rights_issuer_url_length);
     m_RightsIssuerUrl.Assign(buffer, rights_issuer_url_length);
     delete[] buffer;
 
     // textual headers
     buffer = new char[textual_headers_length];
-    stream.Read(buffer, textual_headers_length);
+    stream->Read(buffer, textual_headers_length);
     m_TextualHeaders.SetData((AP4_Byte*)buffer, textual_headers_length);
     delete[] buffer;
 

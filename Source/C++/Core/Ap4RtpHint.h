@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_RTP_HINT_H_
 #define _AP4_RTP_HINT_H_
 
@@ -36,6 +38,9 @@
 #include "Ap4List.h"
 #include "Ap4DataBuffer.h"
 #include "Ap4Interfaces.h"
+
+#include <list>
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   forward declarations
@@ -53,15 +58,15 @@ public:
     // constructors and destructor
     AP4_RtpSampleData(AP4_ByteStream& stream, AP4_UI32 size);
     AP4_RtpSampleData() {}
-    virtual ~AP4_RtpSampleData();
+    virtual ~AP4_RtpSampleData() = default;
 
     // methods
-    virtual AP4_Result          AddPacket(AP4_RtpPacket* packet);
-    virtual AP4_Size            GetSize();
-    virtual AP4_ByteStream*     ToByteStream();
+    virtual AP4_Result                      AddPacket(std::shared_ptr<AP4_RtpPacket> packet);
+    virtual AP4_Size                        GetSize();
+    virtual std::shared_ptr<AP4_ByteStream> ToByteStream();
     
     // accessors
-    AP4_List<AP4_RtpPacket>& GetPackets() {
+    std::list<std::shared_ptr<AP4_RtpPacket>>& GetPackets() {
         return m_Packets;
     }
     const AP4_DataBuffer& GetExtraData() const {
@@ -70,14 +75,14 @@ public:
 
 protected:
     // members
-    AP4_List<AP4_RtpPacket>     m_Packets;
-    AP4_DataBuffer              m_ExtraData;
+    std::list<std::shared_ptr<AP4_RtpPacket>> m_Packets;
+    AP4_DataBuffer                            m_ExtraData;
 };
 
 /*----------------------------------------------------------------------
 |   AP4_RtpPacket
 +---------------------------------------------------------------------*/
-class AP4_RtpPacket : public AP4_Referenceable
+class AP4_RtpPacket
 {
 public:
     // constructor and destructor
@@ -91,17 +96,13 @@ public:
                   int      time_stamp_offset = 0,
                   bool     bframe_flag = false,
                   bool     repeat_flag = false);
-    ~AP4_RtpPacket();
+    virtual ~AP4_RtpPacket() = default;
 
     // methods
     AP4_Result Write(AP4_ByteStream& stream);
-    AP4_Result AddConstructor(AP4_RtpConstructor* constructor);
+    AP4_Result AddConstructor(std::shared_ptr<AP4_RtpConstructor> constructor);
     AP4_Size GetSize();
     AP4_Size GetConstructedDataSize();
-
-    // Referenceable methods
-    void AddReference();
-    void Release();
     
     // Accessors
     int GetRelativeTime() const { return m_RelativeTime; }
@@ -113,54 +114,50 @@ public:
     int  GetTimeStampOffset() const { return m_TimeStampOffset; }
     bool GetBFrameFlag() const { return m_BFrameFlag; }
     bool GetRepeatFlag() const { return m_RepeatFlag; }
-    AP4_List<AP4_RtpConstructor>& GetConstructors() {
+    std::list<std::shared_ptr<AP4_RtpConstructor>>& GetConstructors() {
         return m_Constructors;
     }
 
 private:
-    // members
-    AP4_Cardinal                    m_ReferenceCount;                        
-    int                             m_RelativeTime;
-    bool                            m_PBit;
-    bool                            m_XBit;
-    bool                            m_MBit;
-    AP4_UI08                        m_PayloadType;
-    AP4_UI16                        m_SequenceSeed;
-    int                             m_TimeStampOffset;
-    bool                            m_BFrameFlag;
-    bool                            m_RepeatFlag;
-    AP4_List<AP4_RtpConstructor>    m_Constructors;
+    // members                       
+    int                                            m_RelativeTime;
+    bool                                           m_PBit;
+    bool                                           m_XBit;
+    bool                                           m_MBit;
+    AP4_UI08                                       m_PayloadType;
+    AP4_UI16                                       m_SequenceSeed;
+    int                                            m_TimeStampOffset;
+    bool                                           m_BFrameFlag;
+    bool                                           m_RepeatFlag;
+    std::list<std::shared_ptr<AP4_RtpConstructor>> m_Constructors;
 };
 
 /*----------------------------------------------------------------------
 |   AP4_RtpContructor
 +---------------------------------------------------------------------*/
-class AP4_RtpConstructor : public AP4_Referenceable
+class AP4_RtpConstructor
 {
 public:
     // types
     typedef AP4_UI08 Type;
 
-    // constructor & destructor
-    AP4_RtpConstructor(Type type) : m_ReferenceCount(1), m_Type(type) {}
+    // constructor
+    AP4_RtpConstructor(Type type) : m_Type(type) {}
 
     // methods
     Type GetType() const { return m_Type; }
     AP4_Result Write(AP4_ByteStream& stream);
     virtual AP4_Size GetConstructedDataSize() = 0;
 
-    // Referenceable methods
-    void AddReference();
-    void Release();
-
 protected:
+    //destructor
+    virtual ~AP4_RtpConstructor() = default;
+
     // methods
-    virtual ~AP4_RtpConstructor() {}
     virtual AP4_Result DoWrite(AP4_ByteStream& stream) = 0;
 
     // members
-    AP4_Cardinal m_ReferenceCount;
-    Type         m_Type;
+    Type m_Type;
 };
 
 /*----------------------------------------------------------------------
@@ -291,7 +288,7 @@ class AP4_RtpConstructorFactory
 {
 public:
     static AP4_Result CreateConstructorFromStream(AP4_ByteStream&      stream,
-                                                  AP4_RtpConstructor*& constructor);
+                                                  std::shared_ptr<AP4_RtpConstructor>& constructor);
 };
 
 #endif // _AP4_RTP_HINT_H_

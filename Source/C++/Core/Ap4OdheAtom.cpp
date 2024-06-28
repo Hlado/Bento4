@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -42,14 +44,14 @@ AP4_DEFINE_DYNAMIC_CAST_ANCHOR(AP4_OdheAtom)
 |   AP4_OdheAtom::Create
 +---------------------------------------------------------------------*/
 AP4_OdheAtom*
-AP4_OdheAtom::Create(AP4_Size         size, 
-                     AP4_ByteStream&  stream,
-                     AP4_AtomFactory& atom_factory)
+AP4_OdheAtom::Create(AP4_Size                        size, 
+                     std::shared_ptr<AP4_ByteStream> stream,
+                     AP4_AtomFactory&                atom_factory)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_OdheAtom(size, version, flags, stream, atom_factory);
 }
@@ -57,20 +59,20 @@ AP4_OdheAtom::Create(AP4_Size         size,
 /*----------------------------------------------------------------------
 |   AP4_OdheAtom::AP4_OdheAtom
 +---------------------------------------------------------------------*/
-AP4_OdheAtom::AP4_OdheAtom(AP4_UI32         size, 
-                           AP4_UI08         version,
-                           AP4_UI32         flags,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_OdheAtom::AP4_OdheAtom(AP4_UI32                        size, 
+                           AP4_UI08                        version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_ODHE, size, false, version, flags)
 {
     if (size < AP4_FULL_ATOM_HEADER_SIZE+1) return;
     // read the content type
     AP4_UI08 content_type_length;
-    stream.ReadUI08(content_type_length);
+    stream->ReadUI08(content_type_length);
     if (size < AP4_FULL_ATOM_HEADER_SIZE+1+content_type_length) return;
     char content_type[256];
-    stream.Read(content_type, content_type_length);
+    stream->Read(content_type, content_type_length);
     m_ContentType.Assign(content_type, content_type_length);
 
     // read the children

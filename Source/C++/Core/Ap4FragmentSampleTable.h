@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_FRAGMENT_SAMPLE_TABLE_H_
 #define _AP4_FRAGMENT_SAMPLE_TABLE_H_
 
@@ -35,6 +37,8 @@
 #include "Ap4Types.h"
 #include "Ap4SampleTable.h"
 #include "Ap4Array.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   forward declarations
@@ -52,12 +56,12 @@ class AP4_FragmentSampleTable : public AP4_SampleTable
 {
  public:
     // methods
-             AP4_FragmentSampleTable(AP4_ContainerAtom* traf, 
-                                     AP4_TrexAtom*      trex,
-                                     AP4_ByteStream*    sample_stream,
-                                     AP4_Position       moof_offset,
-                                     AP4_Position       mdat_payload_offset, // hack because MS doesn't implement the spec correctly
-                                     AP4_UI64           dts_origin=0);
+             AP4_FragmentSampleTable(AP4_ContainerAtom*              traf, 
+                                     AP4_TrexAtom*                   trex,
+                                     std::shared_ptr<AP4_ByteStream> sample_stream,
+                                     AP4_Position                    moof_offset,
+                                     AP4_Position                    mdat_payload_offset, // hack because MS doesn't implement the spec correctly
+                                     AP4_UI64                        dts_origin=0);
     virtual ~AP4_FragmentSampleTable();
 
     // AP4_SampleTable methods
@@ -80,13 +84,13 @@ private:
     AP4_UI64              m_Duration;
     
     // methods
-    AP4_Result AddTrun(AP4_TrunAtom*   trun, 
-                       AP4_TfhdAtom*   tfhd, 
-                       AP4_TrexAtom*   trex, 
-                       AP4_ByteStream* sample_stream,
-                       AP4_Position    moof_offset,
-                       AP4_Position&   payload_offset,
-                       AP4_UI64&       dts_origin);
+    AP4_Result AddTrun(AP4_TrunAtom*                   trun, 
+                       AP4_TfhdAtom*                   tfhd, 
+                       AP4_TrexAtom*                   trex, 
+                       std::shared_ptr<AP4_ByteStream> sample_stream,
+                       AP4_Position                    moof_offset,
+                       AP4_Position&                   payload_offset,
+                       AP4_UI64&                       dts_origin);
 
 };
 

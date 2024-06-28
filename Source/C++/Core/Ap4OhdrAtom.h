@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_OHDR_ATOM_H_
 #define _AP4_OHDR_ATOM_H_
 
@@ -37,6 +39,8 @@
 #include "Ap4ContainerAtom.h"
 #include "Ap4String.h"
 #include "Ap4OmaDcf.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   constants
@@ -57,9 +61,9 @@ public:
     AP4_IMPLEMENT_DYNAMIC_CAST_D2(AP4_OhdrAtom, AP4_ContainerAtom, AP4_OmaDrmInfo)
 
     // class methods
-    static AP4_OhdrAtom* Create(AP4_Size         size, 
-                                AP4_ByteStream&  stream, 
-                                AP4_AtomFactory& atom_factory);
+    static AP4_OhdrAtom* Create(AP4_Size                        size, 
+                                std::shared_ptr<AP4_ByteStream> stream, 
+                                AP4_AtomFactory&                atom_factory);
 
     // constructor
     AP4_OhdrAtom(AP4_UI08        encryption_method, 
@@ -89,11 +93,11 @@ public:
 
 private:
     // methods
-    AP4_OhdrAtom(AP4_UI32         size, 
-                 AP4_UI08         version,
-                 AP4_UI32         flags,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+    AP4_OhdrAtom(AP4_UI32                        size, 
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream,
+                 AP4_AtomFactory&                atom_factory);
 
     // members
     AP4_UI08       m_EncryptionMethod; 

@@ -36,6 +36,8 @@
 #include "Ap4Array.h"
 #include "Ap4ContainerAtom.h"
 
+#include <memory>
+
 /*----------------------------------------------------------------------
 |   AP4_IproAtom
 +---------------------------------------------------------------------*/
@@ -43,9 +45,9 @@ class AP4_IproAtom : public AP4_ContainerAtom
 {
 public:
     // class methods
-    static AP4_IproAtom* Create(AP4_Size         size,
-                                AP4_ByteStream&  stream,
-                                AP4_AtomFactory& atom_factory);
+    static AP4_IproAtom* Create(AP4_Size                        size,
+                                std::shared_ptr<AP4_ByteStream> stream,
+                                AP4_AtomFactory&                atom_factory);
 
     // methods
     virtual AP4_Result InspectFields(AP4_AtomInspector& inspector);
@@ -53,11 +55,11 @@ public:
 
 private:
     // methods
-    AP4_IproAtom(AP4_UI32         size,
-                 AP4_UI08         version,
-                 AP4_UI32         flags,
-                 AP4_ByteStream&  stream,
-                 AP4_AtomFactory& atom_factory);
+    AP4_IproAtom(AP4_UI32                        size,
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream,
+                 AP4_AtomFactory&                atom_factory);
 };
 
 #endif // _AP4_IPRO_ATOM_H_

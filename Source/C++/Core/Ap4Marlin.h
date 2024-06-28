@@ -81,10 +81,10 @@ public:
     };
     
     // methods
-    static AP4_Result Parse(AP4_AtomParent&      top_level, 
-                            AP4_ByteStream&      stream,
-                            AP4_List<SinfEntry>& sinf_entries,
-                            bool                 remove_od_data=false);
+    static AP4_Result Parse(AP4_AtomParent&                 top_level, 
+                            std::shared_ptr<AP4_ByteStream> stream,
+                            AP4_List<SinfEntry>&            sinf_entries,
+                            bool                            remove_od_data=false);
     
 private:
     AP4_MarlinIpmpParser() {} // this class can't be instantiated
@@ -144,7 +144,7 @@ public:
 
     // methods
     virtual AP4_Result Initialize(AP4_AtomParent&   top_level,
-                                  AP4_ByteStream&   stream,
+                                  std::shared_ptr<AP4_ByteStream> stream,
                                   ProgressListener* listener);
     virtual AP4_Processor::TrackHandler* CreateTrackHandler(AP4_TrakAtom* trak);
 

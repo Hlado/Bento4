@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -38,8 +40,8 @@
 |   AP4_CommandFactory::CreateCommandFromStream
 +---------------------------------------------------------------------*/
 AP4_Result
-AP4_CommandFactory::CreateCommandFromStream(AP4_ByteStream& stream, 
-                                            AP4_Command*&   command)
+AP4_CommandFactory::CreateCommandFromStream(std::shared_ptr<AP4_ByteStream> stream, 
+                                            AP4_Command*&                   command)
 {
     AP4_Result result;
 
@@ -48,13 +50,13 @@ AP4_CommandFactory::CreateCommandFromStream(AP4_ByteStream& stream,
 
     // remember current stream offset
     AP4_Position offset;
-    stream.Tell(offset);
+    stream->Tell(offset);
 
     // read descriptor tag
     unsigned char tag;
-    result = stream.ReadUI08(tag);
+    result = stream->ReadUI08(tag);
     if (AP4_FAILED(result)) {
-        stream.Seek(offset);
+        stream->Seek(offset);
         return result;
     }
     
@@ -65,9 +67,9 @@ AP4_CommandFactory::CreateCommandFromStream(AP4_ByteStream& stream,
     unsigned char ext  = 0;
     do {
         header_size++;
-        result = stream.ReadUI08(ext);
+        result = stream->ReadUI08(ext);
         if (AP4_FAILED(result)) {
-            stream.Seek(offset);
+            stream->Seek(offset);
             return result;
         }
         payload_size = (payload_size<<7) + (ext&0x7F);
@@ -81,12 +83,12 @@ AP4_CommandFactory::CreateCommandFromStream(AP4_ByteStream& stream,
         break;
 
       default:
-        command = new AP4_UnknownCommand(stream, tag, header_size, payload_size);
+        command = new AP4_UnknownCommand(*stream, tag, header_size, payload_size);
         break;
     }
 
     // skip to the end of the descriptor
-    stream.Seek(offset+header_size+payload_size);
+    stream->Seek(offset+header_size+payload_size);
 
     return AP4_SUCCESS;
 }

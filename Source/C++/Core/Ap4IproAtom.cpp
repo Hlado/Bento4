@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
@@ -40,14 +42,14 @@
 |   AP4_IproAtom::Create
 +---------------------------------------------------------------------*/
 AP4_IproAtom*
-AP4_IproAtom::Create(AP4_Size         size, 
-                     AP4_ByteStream&  stream, 
-                     AP4_AtomFactory& atom_factory)
+AP4_IproAtom::Create(AP4_Size                        size, 
+                     std::shared_ptr<AP4_ByteStream> stream, 
+                     AP4_AtomFactory&                atom_factory)
 {
     AP4_UI08 version;
     AP4_UI32 flags;
     if (size < AP4_FULL_ATOM_HEADER_SIZE) return NULL;
-    if (AP4_FAILED(AP4_Atom::ReadFullHeader(stream, version, flags))) return NULL;
+    if (AP4_FAILED(AP4_Atom::ReadFullHeader(*stream, version, flags))) return NULL;
     if (version != 0) return NULL;
     return new AP4_IproAtom(size, version, flags, stream, atom_factory);
 }
@@ -55,11 +57,11 @@ AP4_IproAtom::Create(AP4_Size         size,
 /*----------------------------------------------------------------------
 |   AP4_IproAtom::AP4_IproAtom
 +---------------------------------------------------------------------*/
-AP4_IproAtom::AP4_IproAtom(AP4_UI32         size,
-                           AP4_UI08         version,
-                           AP4_UI32         flags,
-                           AP4_ByteStream&  stream,
-                           AP4_AtomFactory& atom_factory) :
+AP4_IproAtom::AP4_IproAtom(AP4_UI32                        size,
+                           AP4_UI08                        version,
+                           AP4_UI32                        flags,
+                           std::shared_ptr<AP4_ByteStream> stream,
+                           AP4_AtomFactory&                atom_factory) :
     AP4_ContainerAtom(AP4_ATOM_TYPE_IPRO, size, false, version, flags)
 {
     if (size < AP4_FULL_ATOM_HEADER_SIZE + 2) {
@@ -68,7 +70,7 @@ AP4_IproAtom::AP4_IproAtom(AP4_UI32         size,
 
     // read the number of entries
     AP4_UI16 entry_count;
-    stream.ReadUI16(entry_count);
+    stream->ReadUI16(entry_count);
 
     // read all entries
     AP4_LargeSize bytes_available = size-AP4_FULL_ATOM_HEADER_SIZE-2;

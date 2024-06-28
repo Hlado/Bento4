@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 #ifndef _AP4_ESDS_ATOM_H_
 #define _AP4_ESDS_ATOM_H_
 
@@ -35,6 +37,8 @@
 #include "Ap4Types.h"
 #include "Ap4Atom.h"
 #include "Ap4EsDescriptor.h"
+
+#include <memory>
 
 /*----------------------------------------------------------------------
 |   class references
@@ -50,7 +54,7 @@ public:
     AP4_IMPLEMENT_DYNAMIC_CAST_D(AP4_EsdsAtom, AP4_Atom)
 
     // class methods
-    static AP4_EsdsAtom* Create(AP4_Size size, AP4_ByteStream& stream);
+    static AP4_EsdsAtom* Create(AP4_Size size, std::shared_ptr<AP4_ByteStream> stream);
 
     // methods
     AP4_EsdsAtom(AP4_EsDescriptor* descriptor);
@@ -61,10 +65,10 @@ public:
 
 private:
     // methods
-    AP4_EsdsAtom(AP4_UI32        size, 
-                 AP4_UI08        version,
-                 AP4_UI32        flags,
-                 AP4_ByteStream& stream);
+    AP4_EsdsAtom(AP4_UI32                        size,
+                 AP4_UI08                        version,
+                 AP4_UI32                        flags,
+                 std::shared_ptr<AP4_ByteStream> stream);
 
     // members
     AP4_EsDescriptor* m_EsDescriptor;

@@ -26,12 +26,16 @@
 |
  ****************************************************************/
 
+//Modified by github user @Hlado 06/27/2024
+
 /*----------------------------------------------------------------------
 |   includes
 +---------------------------------------------------------------------*/
 #include "Ap4Types.h"
 #include "Ap4ByteStream.h"
 #include "Ap4Config.h"
+
+#include <memory>
 
 #ifndef _AP4_FILE_BYTE_STREAM_H_
 #define _AP4_FILE_BYTE_STREAM_H_
@@ -59,10 +63,11 @@ public:
      * @return AP4_SUCCESS if the file can be opened or created, or an error code if
      * it cannot
      */
-    static AP4_Result Create(const char* name, Mode mode, AP4_ByteStream*& stream);
+    static AP4_Result Create(const char* name, Mode mode, std::shared_ptr<AP4_ByteStream>& stream);
 
     // constructors
-    AP4_FileByteStream(AP4_ByteStream* delegate) : m_Delegate(delegate) {}
+    AP4_FileByteStream(std::shared_ptr<AP4_ByteStream> delegate)
+        : m_Delegate(std::move(delegate)) {}
 
 #if !defined(AP4_CONFIG_NO_EXCEPTIONS)
     /**
@@ -87,26 +92,12 @@ public:
     AP4_Result GetSize(AP4_LargeSize& size) { return m_Delegate->GetSize(size);  }
     AP4_Result Flush()                      { return m_Delegate->Flush();        }
 
-    // AP4_Referenceable methods
-    void AddReference() { m_Delegate->AddReference(); }
-    void Release()      { m_Delegate->Release();      }
-
 protected:
     // methods
-    virtual ~AP4_FileByteStream() {
-        delete m_Delegate;
-    }
+    virtual ~AP4_FileByteStream() {}
 
     // members
-    AP4_ByteStream* m_Delegate;
+    std::shared_ptr<AP4_ByteStream> m_Delegate;
 };
 
 #endif // _AP4_FILE_BYTE_STREAM_H_
-
-
-
-
-
-
-
-
