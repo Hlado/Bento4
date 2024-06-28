@@ -96,7 +96,6 @@ foreach(app ${BENTO4_APPS})
   target_link_libraries(${binary_name} ap4)
 
   if(MSVC)
-    set_property(TARGET ${binary_name} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     target_compile_definitions(${binary_name} PRIVATE -D_CONSOLE)
   endif()
 endforeach()
