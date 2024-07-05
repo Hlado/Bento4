@@ -26,6 +26,8 @@
 |
  ****************************************************************/
 
+ //Modified by github user @Hlado 07/05/2024
+
 #ifndef _AP4_MVHD_ATOM_H_
 #define _AP4_MVHD_ATOM_H_
 
@@ -67,6 +69,8 @@ public:
         m_NextTrackId = next_track_id;
         return AP4_SUCCESS;
     }
+    AP4_UI32           GetRate() { return m_Rate; }
+    void               SetRate(AP4_UI32 rate) { m_Rate = rate; }
 
 private:
     // methods
