@@ -412,6 +412,8 @@ public:
     // methods
     virtual AP4_Result WriteFields(AP4_ByteStream& stream);
     virtual AP4_Atom*  Clone();
+    const AP4_DataBuffer &GetPayload() const { return m_Payload; }
+    AP4_Position GetSourcePosition() const { return m_SourcePosition; }
 
 private:
     // members
