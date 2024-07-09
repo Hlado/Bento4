@@ -26,6 +26,8 @@
 |
 ****************************************************************/
 
+//Modified by github user @Hlado 07/09/2024
+
 #ifndef _AP4_AVCC_ATOM_H_
 #define _AP4_AVCC_ATOM_H_
 
