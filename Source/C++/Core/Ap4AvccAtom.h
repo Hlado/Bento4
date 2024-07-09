@@ -68,7 +68,7 @@ public:
                  AP4_UI08 chroma_format,
                  AP4_UI08 bit_depth_luma_minus8,
                  AP4_UI08 bit_depth_chroma_minus8,
-                 const AP4_Array<AP4_DataBuffer>& sequence_parameters,
+                 const AP4_Array<AP4_DataBuffer>& c,
                  const AP4_Array<AP4_DataBuffer>& picture_parameters);
     AP4_AvccAtom(const AP4_AvccAtom& other); // copy construtor
     
@@ -79,6 +79,7 @@ public:
     // accessors
     AP4_UI08 GetConfigurationVersion() const { return m_ConfigurationVersion; }
     AP4_UI08 GetProfile() const              { return m_Profile; }
+    void SetProfile(AP4_UI08 profile)        { m_Profile = profile; }
     AP4_UI08 GetLevel() const                { return m_Level; }
     AP4_UI08 GetProfileCompatibility() const { return m_ProfileCompatibility; }
     AP4_UI08 GetNaluLengthSize() const       { return m_NaluLengthSize; }
