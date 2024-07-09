@@ -79,7 +79,11 @@ public:
     // accessors
     AP4_UI08 GetConfigurationVersion() const { return m_ConfigurationVersion; }
     AP4_UI08 GetProfile() const              { return m_Profile; }
-    void SetProfile(AP4_UI08 profile)        { m_Profile = profile; }
+    void SetProfile(AP4_UI08 profile)
+    {
+        m_Profile = profile;
+        UpdateRawBytes();
+    }
     AP4_UI08 GetLevel() const                { return m_Level; }
     AP4_UI08 GetProfileCompatibility() const { return m_ProfileCompatibility; }
     AP4_UI08 GetNaluLengthSize() const       { return m_NaluLengthSize; }
