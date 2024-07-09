@@ -70,7 +70,7 @@ public:
                  AP4_UI08 chroma_format,
                  AP4_UI08 bit_depth_luma_minus8,
                  AP4_UI08 bit_depth_chroma_minus8,
-                 const AP4_Array<AP4_DataBuffer>& c,
+                 const AP4_Array<AP4_DataBuffer>& sequence_parameters,
                  const AP4_Array<AP4_DataBuffer>& picture_parameters);
     AP4_AvccAtom(const AP4_AvccAtom& other); // copy construtor
     
