@@ -214,6 +214,9 @@ AP4_TrunAtom::UpdateFlags(AP4_UI32 flags)
 AP4_Result
 AP4_TrunAtom::SetEntries(const AP4_Array<Entry>& entries)
 {
+    unsigned int record_fields_count = ComputeRecordFieldsCount(m_Flags);
+    m_Size32 -= m_Entries.ItemCount()*record_fields_count*4;
+
     // resize the entry array
     m_Entries.SetItemCount(entries.ItemCount());
     
@@ -224,7 +227,7 @@ AP4_TrunAtom::SetEntries(const AP4_Array<Entry>& entries)
     }
     
     // update the atom size
-    unsigned int record_fields_count = ComputeRecordFieldsCount(m_Flags);
+    
     m_Size32 += entries.ItemCount()*record_fields_count*4;
     
     // notify the parent
